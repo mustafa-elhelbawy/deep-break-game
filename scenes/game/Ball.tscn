@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/game/Ball.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/textures/atlas.png" id="atlas"]
+
+[sub_resource type="CircleShape2D" id="ball_shape"]
+radius = 10.0
+
+[node name="Ball" type="CharacterBody2D"]
+motion_mode = 1
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("ball_shape")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("atlas")
+region_enabled = true
+region_rect = Rect2(0, 0, 20, 20)
