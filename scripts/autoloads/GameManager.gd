@@ -1,14 +1,110 @@
 # GameManager.gd
-# Autoload singleton — owns game state: lives, score, current level, seed.
-# Phases 2–3 fill in the real state machine and signals.
-# Stub only for Phase 1: does nothing, but must exist so other scenes can
-# reference GameManager without "Autoload not found" errors.
+# Autoload singleton — owns the game session state machine.
+# Emits signals for every state transition; UI and Game.gd react to these.
 #
-# [GDScript] 'extends Node' attaches this script to a plain scene-tree Node.
-# [JS equiv]  class GameManager { } — a stateful service class, no rendering.
+# State flow:
+#   TITLE → WAITING (start_game called)
+#   WAITING → PLAYING (set_playing called by Game.gd on ball launch)
+#   PLAYING → DEAD (ball lost, lives > 0)
+#   PLAYING → GAME_OVER (ball lost, lives == 0)
+#   PLAYING → LEVEL_CLEAR (all bricks destroyed)
+#   DEAD → WAITING (reset_after_death called by Game.gd after delay)
+#   LEVEL_CLEAR → WAITING (advance_level called by LevelClear screen)
+#   GAME_OVER → WAITING (restart called by GameOver screen)
+#
+# [GDScript] 'extends Node' — autoloads attach to a plain Node in the scene tree.
+# [JS equiv]  class GameManager { } — singleton service, no rendering role.
 extends Node
 
-func _ready() -> void:
-	# [GDScript] 'pass' is a no-op placeholder — like an empty {} block in JS.
-	# [JS equiv]  constructor() {}
-	pass
+# ── State enum ─────────────────────────────────────────────────────────────────
+# [GDScript] enum defines named integer constants scoped to this class.
+# Accessible externally as: GameManager.State.WAITING
+# [JS equiv]  const State = Object.freeze({ TITLE: 0, WAITING: 1, ... })
+enum State {
+	TITLE,
+	WAITING,
+	PLAYING,
+	DEAD,
+	GAME_OVER,
+	LEVEL_CLEAR,
+}
+
+# ── Session state ──────────────────────────────────────────────────────────────
+var state: State = State.TITLE
+var lives: int   = 3
+var score: int   = 0
+var level: int   = 1
+var seed:  int   = 0
+
+# ── Signals ────────────────────────────────────────────────────────────────────
+# [GDScript] Typed signal parameters are enforced at connect() time.
+# [JS equiv]  this.addEventListener('stateChanged', callback)
+signal state_changed(new_state: State)
+signal score_changed(new_score: int)
+signal lives_changed(new_lives: int)
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+
+## Start a new game session — resets all state and transitions to WAITING.
+## initial_seed: pass -1 to use a random seed, or any int for a reproducible seed.
+func start_game(initial_seed: int = -1) -> void:
+	lives = 3
+	score = 0
+	level = 1
+	# randi() returns a random 32-bit unsigned int.
+	# [JS equiv]  Math.floor(Math.random() * 2147483647)
+	seed = initial_seed if initial_seed >= 0 else randi() % 2147483647
+	_set_state(State.WAITING)
+
+## Called by Game.gd immediately after the ball is launched (player tapped).
+func set_playing() -> void:
+	if state == State.WAITING:
+		_set_state(State.PLAYING)
+
+## Called by Game.gd when Ball emits the 'lost' signal.
+## Decrements lives and transitions to DEAD (lives remain) or GAME_OVER (lives = 0).
+func lose_life() -> void:
+	lives -= 1
+	emit_signal("lives_changed", lives)
+	if lives <= 0:
+		_set_state(State.GAME_OVER)
+	else:
+		_set_state(State.DEAD)
+
+## Called by Game.gd after the death reset animation completes (~0.6 s delay).
+## Transitions DEAD → WAITING so the player can re-launch.
+func reset_after_death() -> void:
+	if state == State.DEAD:
+		_set_state(State.WAITING)
+
+## Called by Game.gd when BrickGrid emits all_cleared.
+## Transitions PLAYING → LEVEL_CLEAR.
+func level_clear() -> void:
+	if state == State.PLAYING:
+		_set_state(State.LEVEL_CLEAR)
+
+## Called by LevelClear screen's "Next Level" button.
+## Increments level number and transitions back to WAITING.
+func advance_level() -> void:
+	level += 1
+	_set_state(State.WAITING)
+
+## Called by GameOver screen's "Restart" button.
+## Fully resets and starts a new game session.
+func restart() -> void:
+	start_game()
+
+## Add points to the running score. Called by Game.gd on each brick_destroyed event.
+## Score formula: 10 × (tier + 1). Tier 0 = 10 pts, tier 3 = 40 pts.
+## [JS equiv]  gameManager.addScore(points)
+func add_score(points: int) -> void:
+	score += points
+	# emit_signal() fires synchronously to all connected listeners.
+	# [JS equiv]  this.dispatchEvent(new CustomEvent('scoreChanged', { detail: score }))
+	emit_signal("score_changed", score)
+
+# ── Internal ───────────────────────────────────────────────────────────────────
+
+func _set_state(new_state: State) -> void:
+	state = new_state
+	emit_signal("state_changed", new_state)
