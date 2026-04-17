@@ -27,5 +27,5 @@ position = Vector2(180, 680)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(180, 390)
-anchor_mode = 0
+anchor_mode = 1
 position_smoothing_enabled = false
