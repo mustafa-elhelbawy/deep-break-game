@@ -14,6 +14,13 @@ config/name="Deep Break"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
+[autoload]
+
+GameManager="*res://scripts/autoloads/GameManager.gd"
+LevelGenerator="*res://scripts/autoloads/LevelGenerator.gd"
+AudioManager="*res://scripts/autoloads/AudioManager.gd"
+JuiceManager="*res://scripts/autoloads/JuiceManager.gd"
+
 [display]
 
 window/size/viewport_width=360
@@ -28,14 +35,8 @@ pointing/emulate_touch_from_mouse=true
 
 3d/physics_engine="Jolt Physics"
 
-[autoload]
-
-GameManager="*res://scripts/autoloads/GameManager.gd"
-LevelGenerator="*res://scripts/autoloads/LevelGenerator.gd"
-AudioManager="*res://scripts/autoloads/AudioManager.gd"
-JuiceManager="*res://scripts/autoloads/JuiceManager.gd"
-
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
