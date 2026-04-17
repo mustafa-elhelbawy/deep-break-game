@@ -1,9 +1,9 @@
-# Tasks: Deep Break — Phase 1 (Environment + First Scene)
+# Tasks: Deep Break — Phase 1 + Phase 2
 
 **Plan**: `specs/001-deep-break-core-plan.md`  
 **Spec**: `specs/001-deep-break-core.md`  
-**Scope**: Phase 1 only — Godot project scaffold, bouncing ball, touch paddle. No bricks, no game logic.  
-**Updated**: 2026-04-13
+**Scope**: Phase 1 — Godot project scaffold, bouncing ball, touch paddle. Phase 2 — Bricks, game loop, lives, score, overlays.  
+**Updated**: 2026-04-18
 
 ---
 
@@ -19,7 +19,7 @@
 
 ---
 
-## Phase 1 Overview
+## Phase 1 Overview ✅
 
 ```
 Session 1 → T001–T003  Environment setup + project creation
@@ -28,6 +28,17 @@ Session 3 → T007–T009  Ball scene + Ball.gd
 Session 4 → T010–T011  Paddle scene + Paddle.gd
 Session 5 → T012–T014  Game scene + wiring + editor smoke-test
 Session 6 → T015–T017  Android build prerequisites + device verification
+```
+
+---
+
+## Phase 2 Overview
+
+```
+Session 1 → T018–T020  Brick scene + BrickGrid scene/script
+Session 2 → T021–T024  GameManager full + HUD + GameOver + LevelClear
+Session 3 → T025–T026  Update Game.tscn + Game.gd (full Phase 2 wiring)
+Session 4 → T027       Full Phase 2 smoke test + final commit
 ```
 
 ---
