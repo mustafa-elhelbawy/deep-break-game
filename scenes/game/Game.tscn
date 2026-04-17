@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/game/Game.gd" id="script"]
+[ext_resource type="PackedScene" path="res://scenes/game/Walls.tscn" id="walls"]
+[ext_resource type="PackedScene" path="res://scenes/game/Ball.tscn" id="ball"]
+[ext_resource type="PackedScene" path="res://scenes/game/Paddle.tscn" id="paddle"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("script")
+
+[node name="Background" type="ColorRect" parent="."]
+mouse_filter = 2
+position = Vector2(0, 0)
+size = Vector2(360, 780)
+color = Color(0.039, 0.055, 0.102, 1)
+
+[node name="Walls" parent="." instance=ExtResource("walls")]
+
+[node name="BallSpawnPoint" type="Marker2D" parent="."]
+position = Vector2(180, 660)
+
+[node name="Paddle" parent="." instance=ExtResource("paddle")]
+position = Vector2(180, 710)
+
+[node name="Ball" parent="." instance=ExtResource("ball")]
+position = Vector2(180, 680)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(180, 390)
+anchor_mode = 0
+position_smoothing_enabled = false

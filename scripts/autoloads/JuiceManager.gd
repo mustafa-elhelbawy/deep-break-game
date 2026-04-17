@@ -7,6 +7,10 @@
 # [JS equiv]  class JuiceManager { shake(i,d){} flash(c,d){} emitBurst(p,t){} }
 extends Node
 
+func register_camera(_camera: Camera2D) -> void:
+	# Phase 4 stores the camera reference for trauma-based screen shake.
+	pass
+
 func shake(_intensity: float, _duration: float) -> void:
 	pass
 
