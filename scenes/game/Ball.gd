@@ -21,6 +21,10 @@ signal lost
 # [JS equiv]  const BASE_SPEED = 400
 # Phase 3: change this to 'var _current_speed: float = 400.0' so speed can
 # scale with level number via set_speed_for_level(level).
+# BASE_SPEED is the reference value at level 1 — never mutated.
+# _current_speed is the actual speed used this session, set by set_speed_for_level().
+# [GDScript] 'const' = immutable compile-time constant; 'var' = mutable member.
+# [JS equiv]  const BASE_SPEED = 400;  let _currentSpeed = 400;
 const BASE_SPEED: float = 400.0
 
 # Minimum absolute vertical speed enforced after every bounce.
@@ -39,9 +43,13 @@ const STUCK_TIMEOUT: float = 2.0
 # [GDScript] Member variables at class scope — equivalent to 'this._velocity' in JS.
 # '_' prefix is the GDScript convention for private members.
 # [JS equiv]  #_velocity = new Vector2(0, 0)  (private class field syntax)
-var _velocity: Vector2 = Vector2.ZERO
-var _active: bool = false
-var _stuck_timer: float = 0.0
+var _velocity: Vector2    = Vector2.ZERO
+var _active: bool         = false
+var _stuck_timer: float   = 0.0
+# Actual speed for this level — set by set_speed_for_level() before each launch.
+# Starts equal to BASE_SPEED and scales 8% per level (capped at 2×).
+# [JS equiv]  let _currentSpeed = BASE_SPEED
+var _current_speed: float = BASE_SPEED
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -49,9 +57,9 @@ var _stuck_timer: float = 0.0
 ## Call this from Game.gd when the player taps to serve.
 ## direction does not need to be pre-normalised — this method normalises it.
 func launch(direction: Vector2) -> void:
-	# normalized() returns a unit vector (length = 1.0), then scale by speed.
-	# [JS equiv]  this._velocity = direction.clone().normalize().multiplyScalar(BASE_SPEED)
-	_velocity = direction.normalized() * BASE_SPEED
+	# Use _current_speed (set by set_speed_for_level before this call), not BASE_SPEED.
+	# [JS equiv]  this._velocity = direction.normalize().multiplyScalar(this._currentSpeed)
+	_velocity = direction.normalized() * _current_speed
 	_active = true
 	_stuck_timer = 0.0
 
@@ -64,6 +72,14 @@ func reset_to_paddle(paddle_global_pos: Vector2) -> void:
 	# In Godot 2D, +Y is downward, so -Y moves upward.
 	# [JS equiv]  this.position = { x: paddle_global_pos.x, y: paddle_global_pos.y - 30 }
 	global_position = paddle_global_pos + Vector2(0.0, -30.0)
+
+## Sets ball speed for the given level. Call BEFORE launch() on every serve.
+## Speed grows 8% per level, capped at 2× BASE_SPEED (800 px/s from level 13+).
+## [JS equiv]  setSpeedForLevel(level) { this._currentSpeed = Math.min(1 + level*0.08, 2) * BASE_SPEED }
+func set_speed_for_level(level: int) -> void:
+	# minf() is the float version of min() — same as Math.min() in JS.
+	var scale: float = minf(1.0 + level * 0.08, 2.0)
+	_current_speed = BASE_SPEED * scale
 
 ## Stop the ball immediately. Called by Game.gd on game-over or level-clear.
 func deactivate() -> void:
@@ -111,9 +127,9 @@ func _move_and_reflect(delta: float) -> void:
 	_velocity = _velocity.bounce(collision.get_normal())
 
 	# Re-normalise then rescale: floating-point arithmetic causes tiny speed drift
-	# across hundreds of bounces. This keeps speed exactly at BASE_SPEED always.
-	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(BASE_SPEED)
-	_velocity = _velocity.normalized() * BASE_SPEED
+	# across hundreds of bounces. This keeps speed exactly at _current_speed always.
+	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(this._currentSpeed)
+	_velocity = _velocity.normalized() * _current_speed
 
 	# ── Enforce minimum vertical speed ────────────────────────────────────────
 	# After a grazing bounce (e.g. hitting a brick corner or a wall at a shallow
@@ -125,7 +141,7 @@ func _move_and_reflect(delta: float) -> void:
 	# [JS equiv]  if (Math.abs(vy) < MIN_VY) vy = vy <= 0 ? -MIN_VY : MIN_VY
 	if abs(_velocity.y) < MIN_VERTICAL_SPEED:
 		_velocity.y = -MIN_VERTICAL_SPEED if _velocity.y <= 0.0 else MIN_VERTICAL_SPEED
-		_velocity = _velocity.normalized() * BASE_SPEED
+		_velocity = _velocity.normalized() * _current_speed
 
 func _check_stuck(delta: float) -> void:
 	# Backup watchdog — fires only if the per-bounce clamp somehow missed.
@@ -141,7 +157,7 @@ func _check_stuck(delta: float) -> void:
 		# randf_range(a, b) → random float in [a, b].
 		# [JS equiv]  Math.random() * (b - a) + a
 		_velocity.x += randf_range(-80.0, 80.0)
-		_velocity = _velocity.normalized() * BASE_SPEED
+		_velocity = _velocity.normalized() * _current_speed
 		_stuck_timer = 0.0
 
 func _check_lost() -> void:

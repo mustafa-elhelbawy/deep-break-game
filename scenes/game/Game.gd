@@ -129,14 +129,19 @@ func _input(event: InputEvent) -> void:
 # ── Private helpers ────────────────────────────────────────────────────────────
 
 func _launch_ball() -> void:
-	# Phase 3: call _ball.set_speed_for_level(GameManager.level) here.
+	# Scale ball speed for the current level before each serve.
+	# Level 1 = 432 px/s · level 10 = 720 px/s · capped at 800 px/s from level 13+.
+	# [JS equiv]  this._ball.setSpeedForLevel(GameManager.level)
+	_ball.set_speed_for_level(GameManager.level)
 	_ball.launch(Vector2(-0.3, -1.0))
 	GameManager.set_playing()
 
 func _spawn_level() -> void:
-	# Phase 3: pass LevelGenerator.generate(GameManager.seed, GameManager.level)
-	# instead of an empty array — the fallback layout fires until then.
-	_grid.spawn([])
+	# LevelGenerator is an autoload — call it directly like a global function.
+	# generate() is a pure function: same seed + level → identical layout every time.
+	# [JS equiv]  const descriptors = LevelGenerator.generate(GameManager.seed, GameManager.level)
+	var descriptors: Array = LevelGenerator.generate(GameManager.seed, GameManager.level)
+	_grid.spawn(descriptors)
 
 # ── BrickGrid signal handlers ──────────────────────────────────────────────────
 
