@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/Game.gd" id="script"]
 [ext_resource type="PackedScene" path="res://scenes/game/Walls.tscn" id="walls"]
@@ -8,6 +8,15 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="gameover"]
 [ext_resource type="PackedScene" path="res://scenes/ui/LevelClear.tscn" id="levelclear"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.039, 0.055, 0.102, 1)
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 0.30
+glow_bloom = 0.15
+glow_blend_mode = 2
 
 [node name="Game" type="Node2D"]
 script = ExtResource("script")
@@ -35,6 +44,9 @@ position = Vector2(180, 680)
 position = Vector2(180, 390)
 anchor_mode = 1
 position_smoothing_enabled = false
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
 
 [node name="HUD" parent="." instance=ExtResource("hud")]
 
