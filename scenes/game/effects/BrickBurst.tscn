@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[sub_resource type="ParticleProcessMaterial" id="burst_mat"]
+direction = Vector3(0, -1, 0)
+spread = 180.0
+initial_velocity_min = 80.0
+initial_velocity_max = 200.0
+gravity = Vector3(0, 200, 0)
+scale_min = 3.0
+scale_max = 6.0
+color = Color(1, 1, 1, 1)
+
+[node name="BrickBurst" type="GPUParticles2D"]
+amount = 12
+lifetime = 0.35
+one_shot = true
+explosiveness = 0.9
+process_material = SubResource("burst_mat")
