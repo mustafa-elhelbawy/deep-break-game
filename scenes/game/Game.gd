@@ -99,7 +99,7 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 		GameManager.State.DEAD:
 			# Ball was lost, lives remain. Reset ball and re-enter WAITING.
 			_ball.reset_to_paddle(_paddle.global_position)
-			# Phase 4: AudioManager.play("ball_lost") here.
+			AudioManager.play("ball_lost")
 			# Short delay then transition back to WAITING so player sees the reset.
 			# [GDScript] await pauses this function until the timer finishes.
 			# [JS equiv]  await new Promise(resolve => setTimeout(resolve, 600))
@@ -108,12 +108,12 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 
 		GameManager.State.GAME_OVER:
 			_ball.deactivate()
-			# Phase 4: AudioManager.play("game_over") here.
+			AudioManager.play("game_over")
 			_game_over.show_with_score(GameManager.score)
 
 		GameManager.State.LEVEL_CLEAR:
 			_ball.deactivate()
-			# Phase 4: AudioManager.play("level_clear") here.
+			AudioManager.play("level_clear")
 			_level_clear.show_for_level(GameManager.level)
 
 # ── Input ──────────────────────────────────────────────────────────────────────
@@ -153,6 +153,6 @@ func _on_brick_destroyed(pos: Vector2, tier: int) -> void:
 	# [JS equiv]  gameManager.addScore(10 * (tier + 1))
 	GameManager.add_score(10 * (tier + 1))
 
-	# Phase 4: JuiceManager.emit_burst(pos, tier) here.
-	# Phase 4: JuiceManager.shake(0.3, 0.1) here.
-	# Phase 4: AudioManager.play("brick_destroy") here.
+	JuiceManager.emit_burst(pos, tier)
+	JuiceManager.shake(0.3, 0.1)
+	AudioManager.play("brick_destroy")
