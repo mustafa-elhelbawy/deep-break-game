@@ -19,12 +19,13 @@ BG     = (10, 14, 26)   # dark navy background
 
 REGIONS = [
     # (x, y, w, h, fill_function_or_colour)
-    ("ball",    0,  0,  20, 20, "circle"),          # soft white circle
-    ("paddle",  0, 20, 120, 16, (0, 200, 200)),     # cyan rect
-    ("tier0",   0, 36,  44, 18, (0, 180, 170)),     # teal
-    ("tier1",   0, 54,  44, 18, (0, 200, 255)),     # cyan-blue
-    ("tier2",   0, 72,  44, 18, (255, 180, 20)),    # amber
-    ("tier3",   0, 90,  44, 18, (160, 90, 255)),    # violet
+    # Phase 4: final bioluminescent palette — region coords are FROZEN, only colours updated.
+    ("ball",    0,  0,  20, 20, "circle"),          # #e0ecff  WHITE_SOFT circle
+    ("paddle",  0, 20, 120, 16, (0, 200, 184)),     # #00c8b8  TEAL
+    ("tier0",   0, 36,  44, 18, (0, 200, 184)),     # #00c8b8  TEAL
+    ("tier1",   0, 54,  44, 18, (0, 224, 255)),     # #00e0ff  CYAN
+    ("tier2",   0, 72,  44, 18, (255, 193,   7)),   # #ffc107  AMBER
+    ("tier3",   0, 90,  44, 18, (177, 103, 255)),   # #b167ff  VIOLET
 ]
 
 def pixel_colour(px, py):
@@ -33,7 +34,7 @@ def pixel_colour(px, py):
             if fill == "circle":
                 cx, cy, r = rx + rw / 2, ry + rh / 2, min(rw, rh) / 2 - 1
                 if math.sqrt((px - cx)**2 + (py - cy)**2) <= r:
-                    return (210, 230, 255)  # soft white ball
+                    return (224, 236, 255)  # #e0ecff  WHITE_SOFT ball
                 return BG
             return fill
     return BG
