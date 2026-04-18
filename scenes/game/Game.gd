@@ -65,6 +65,23 @@ func _ready() -> void:
 # ── State machine reactor ──────────────────────────────────────────────────────
 
 func _on_state_changed(new_state: GameManager.State) -> void:
+	# Capture and update _prev_state BEFORE the match so it is always recorded
+	# even when a branch contains 'await' (which suspends this coroutine before
+	# reaching the bottom of the function).
+	#
+	# Why this matters for DEAD:
+	#   _on_state_changed(DEAD) hits 'await 0.6s' and suspends.
+	#   Inside that same coroutine, GameManager.reset_after_death() fires
+	#   _on_state_changed(WAITING) as a *nested* synchronous call.
+	#   If _prev_state were updated at the bottom, it would still be PLAYING
+	#   at that point — making the WAITING branch think it came from PLAYING
+	#   and incorrectly re-spawn bricks.
+	#   By updating _prev_state first, it is already DEAD when WAITING runs. ✓
+	#
+	# [JS equiv]  const cameFrom = this._prevState; this._prevState = newState
+	var came_from: GameManager.State = _prev_state
+	_prev_state = new_state
+
 	# [GDScript] 'match' is like switch/case — uses structural pattern matching.
 	# [JS equiv]  switch(newState) { case State.WAITING: ...; break; }
 	match new_state:
@@ -72,8 +89,8 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 			# Only (re)spawn bricks when starting fresh — NOT when recovering from a
 			# lost ball. After DEAD the same brick layout must persist so the player
 			# continues from where the ball fell, and accumulated score is preserved.
-			# [JS equiv]  if (this._prevState !== State.DEAD) this._spawnLevel()
-			if _prev_state != GameManager.State.DEAD:
+			# [JS equiv]  if (cameFrom !== State.DEAD) this._spawnLevel()
+			if came_from != GameManager.State.DEAD:
 				_spawn_level()
 			_ball.reset_to_paddle(_paddle.global_position)
 			_game_over.hide()
@@ -98,10 +115,6 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 			_ball.deactivate()
 			# Phase 4: AudioManager.play("level_clear") here.
 			_level_clear.show_for_level(GameManager.level)
-
-	# Record this state so the next transition knows where we came from.
-	# [JS equiv]  this._prevState = newState
-	_prev_state = new_state
 
 # ── Input ──────────────────────────────────────────────────────────────────────
 
