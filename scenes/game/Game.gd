@@ -1,73 +1,126 @@
 # Game.gd
-# Root controller for a play session.
+# Root controller for a play session — Phase 2 full implementation.
 #
-# Phase 1 scope: tap to launch ball, ball bounces, ball lost → reset.
-# Phase 2 will add: GameManager state machine, lives, score, bricks, HUD.
-# Phase 4 will add: JuiceManager calls, WorldEnvironment.
+# Responsibilities:
+#   - Reacts to GameManager state transitions
+#   - Spawns bricks via BrickGrid
+#   - Wires Ball lost signal → GameManager.lose_life()
+#   - Wires BrickGrid signals → score + juice
+#   - Shows/hides GameOver and LevelClear overlays
 #
-# [GDScript] 'extends Node2D' — this script is attached to the Game Node2D root.
-# [JS equiv]  class Game extends HTMLElement { ... }  (Web Component analogy)
+# Phase 1 was: "tap to launch, ball bounces". This replaces that stub entirely.
+# Phase 3 will add: LevelGenerator data passed to BrickGrid.spawn()
+# Phase 4 will add: JuiceManager calls for all game events
+#
+# [GDScript] 'extends Node2D' — root of the play scene.
+# [JS equiv]  class Game extends HTMLElement { ... }
 extends Node2D
 
 # ── Node references ────────────────────────────────────────────────────────────
-# @onready resolves these paths once the scene tree is fully built.
-# $ is shorthand for get_node(). $Ball = get_node("Ball").
-# [GDScript] The type annotation after ':' enables editor autocomplete.
+# [GDScript] @onready resolves paths once the scene tree is built.
+# $ is shorthand for get_node("NodeName").
 # [JS equiv]  this._ball = document.getElementById('ball')
 @onready var _ball: CharacterBody2D    = $Ball
 @onready var _paddle: AnimatableBody2D = $Paddle
 @onready var _camera: Camera2D         = $Camera2D
-
-# ── State ──────────────────────────────────────────────────────────────────────
-# Phase 1 uses a simple boolean. Phase 2 replaces this with GameManager.State enum.
-var _launched: bool = false
+@onready var _grid: Node2D             = $BrickGrid
+@onready var _hud: CanvasLayer         = $HUD
+@onready var _game_over: CanvasLayer   = $GameOver
+@onready var _level_clear: CanvasLayer = $LevelClear
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Give JuiceManager a camera reference for screen shake (Phase 4 uses this).
-	# In Phase 1 JuiceManager.register_camera() is a no-op stub — safe to call.
+	# Give JuiceManager the camera reference (Phase 4 uses it for screen shake).
+	# No-op in Phase 2 — stub already accepts the call safely.
 	JuiceManager.register_camera(_camera)
 
-	# Snap ball to above the paddle at startup.
-	# reset_to_paddle() is defined in Ball.gd.
-	_ball.reset_to_paddle(_paddle.global_position)
+	# Connect GameManager state machine to this scene.
+	# [JS equiv]  gameManager.addEventListener('stateChanged', this._onStateChanged.bind(this))
+	GameManager.state_changed.connect(_on_state_changed)
 
-	# Connect the ball's 'lost' signal to our handler.
-	# .connect() takes a Callable — a reference to a method.
-	# [GDScript] signal.connect(Callable) registers a listener.
-	# [JS equiv]  ball.addEventListener('lost', this._onBallLost.bind(this))
-	_ball.lost.connect(_on_ball_lost)
+	# Connect GameManager score/lives directly to HUD.
+	# HUD.gd also connects these in its own _ready() — both connections are safe
+	# (Godot allows multiple listeners on the same signal).
+	GameManager.score_changed.connect(_hud.update_score)
+	GameManager.lives_changed.connect(_hud.update_lives)
 
-	# Phase 2: connect GameManager.state_changed here.
-	# Phase 2: connect _grid.all_cleared here.
-	# Phase 2: connect _grid.brick_destroyed to JuiceManager.emit_burst + shake.
+	# Connect BrickGrid aggregate signals.
+	_grid.all_cleared.connect(_on_all_cleared)
+	_grid.brick_destroyed.connect(_on_brick_destroyed)
+
+	# Connect Ball lost signal → GameManager life tracking.
+	# [GDScript] Inline Callable (lambda) — like an arrow function in JS.
+	# [JS equiv]  ball.addEventListener('lost', () => gameManager.loseLife())
+	_ball.lost.connect(func(): GameManager.lose_life())
+
+	# Kick off the first game session.
+	GameManager.start_game()
+
+# ── State machine reactor ──────────────────────────────────────────────────────
+
+func _on_state_changed(new_state: GameManager.State) -> void:
+	# [GDScript] 'match' is like switch/case — uses structural pattern matching.
+	# [JS equiv]  switch(newState) { case State.WAITING: ...; break; }
+	match new_state:
+		GameManager.State.WAITING:
+			_spawn_level()
+			_ball.reset_to_paddle(_paddle.global_position)
+			_game_over.hide()
+			_level_clear.hide()
+
+		GameManager.State.DEAD:
+			# Ball was lost, lives remain. Reset ball and re-enter WAITING.
+			_ball.reset_to_paddle(_paddle.global_position)
+			# Phase 4: AudioManager.play("ball_lost") here.
+			# Short delay then transition back to WAITING so player sees the reset.
+			# [GDScript] await pauses this function until the timer finishes.
+			# [JS equiv]  await new Promise(resolve => setTimeout(resolve, 600))
+			await get_tree().create_timer(0.6).timeout
+			GameManager.reset_after_death()
+
+		GameManager.State.GAME_OVER:
+			_ball.deactivate()
+			# Phase 4: AudioManager.play("game_over") here.
+			_game_over.show_with_score(GameManager.score)
+
+		GameManager.State.LEVEL_CLEAR:
+			_ball.deactivate()
+			# Phase 4: AudioManager.play("level_clear") here.
+			_level_clear.show_for_level(GameManager.level)
 
 # ── Input ──────────────────────────────────────────────────────────────────────
 
 func _input(event: InputEvent) -> void:
-	# Only respond to taps before the ball has been launched.
-	# Phase 2: gate this on GameManager.state == State.WAITING instead.
-	if _launched:
+	# Only launch ball when in WAITING state (ball sitting on paddle).
+	# [GDScript] '!=' comparison — same as JS.
+	if GameManager.state != GameManager.State.WAITING:
 		return
-
-	# [GDScript] 'is' checks the runtime type of 'event'.
-	# [JS equiv]  event instanceof TouchEvent && event.type === 'touchstart'
 	if event is InputEventScreenTouch and event.pressed:
 		_launch_ball()
 
+# ── Private helpers ────────────────────────────────────────────────────────────
+
 func _launch_ball() -> void:
-	# Launch at a slight left-of-centre angle for a natural first bounce.
-	# Vector2(-0.3, -1.0) points upward-left. launch() normalises it.
-	# Phase 2: pass GameManager.level to ball.set_speed_for_level() here.
+	# Phase 3: call _ball.set_speed_for_level(GameManager.level) here.
 	_ball.launch(Vector2(-0.3, -1.0))
-	_launched = true
+	GameManager.set_playing()
 
-# ── Signal handlers ────────────────────────────────────────────────────────────
+func _spawn_level() -> void:
+	# Phase 3: pass LevelGenerator.generate(GameManager.seed, GameManager.level)
+	# instead of an empty array — the fallback layout fires until then.
+	_grid.spawn([])
 
-func _on_ball_lost() -> void:
-	# Phase 1: just reset immediately — no lives, no game over screen.
-	# Phase 2: replace with GameManager.lose_life() which handles lives and
-	#          transitions to DEAD / GAME_OVER states.
-	_launched = false
-	_ball.reset_to_paddle(_paddle.global_position)
+# ── BrickGrid signal handlers ──────────────────────────────────────────────────
+
+func _on_all_cleared() -> void:
+	GameManager.level_clear()
+
+func _on_brick_destroyed(pos: Vector2, tier: int) -> void:
+	# Score: 10 × (tier + 1). Tier 0 = 10 pts, tier 3 = 40 pts.
+	# [JS equiv]  gameManager.addScore(10 * (tier + 1))
+	GameManager.add_score(10 * (tier + 1))
+
+	# Phase 4: JuiceManager.emit_burst(pos, tier) here.
+	# Phase 4: JuiceManager.shake(0.3, 0.1) here.
+	# Phase 4: AudioManager.play("brick_destroy") here.
