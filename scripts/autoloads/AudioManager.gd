@@ -37,10 +37,10 @@ func _ready() -> void:
 	# Load all known SFX files into the stream map.
 	# If a file is missing, _load_stream() records null and play() skips silently.
 	# [JS equiv]  Object.entries(SFX_PATHS).forEach(([k, v]) => SFX[k] = new Audio(v))
-	_load_stream("ball_lost",     "res://assets/audio/sfx/ball_lost.ogg")
-	_load_stream("brick_destroy", "res://assets/audio/sfx/brick_destroy.ogg")
-	_load_stream("game_over",     "res://assets/audio/sfx/game_over.ogg")
-	_load_stream("level_clear",   "res://assets/audio/sfx/level_clear.ogg")
+	_load_stream("ball_lost",     "res://assets/audio/sfx/ball_lost.wav")
+	_load_stream("brick_destroy", "res://assets/audio/sfx/brick_destroy.wav")
+	_load_stream("game_over",     "res://assets/audio/sfx/game_over.wav")
+	_load_stream("level_clear",   "res://assets/audio/sfx/level_clear.wav")
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
