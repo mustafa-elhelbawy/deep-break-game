@@ -1,9 +1,13 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/Game.gd" id="script"]
 [ext_resource type="PackedScene" path="res://scenes/game/Walls.tscn" id="walls"]
 [ext_resource type="PackedScene" path="res://scenes/game/Ball.tscn" id="ball"]
 [ext_resource type="PackedScene" path="res://scenes/game/Paddle.tscn" id="paddle"]
+[ext_resource type="PackedScene" path="res://scenes/game/BrickGrid.tscn" id="brickgrid"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="gameover"]
+[ext_resource type="PackedScene" path="res://scenes/ui/LevelClear.tscn" id="levelclear"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("script")
@@ -15,6 +19,8 @@ size = Vector2(360, 780)
 color = Color(0.039, 0.055, 0.102, 1)
 
 [node name="Walls" parent="." instance=ExtResource("walls")]
+
+[node name="BrickGrid" parent="." instance=ExtResource("brickgrid")]
 
 [node name="BallSpawnPoint" type="Marker2D" parent="."]
 position = Vector2(180, 660)
@@ -29,3 +35,9 @@ position = Vector2(180, 680)
 position = Vector2(180, 390)
 anchor_mode = 1
 position_smoothing_enabled = false
+
+[node name="HUD" parent="." instance=ExtResource("hud")]
+
+[node name="GameOver" parent="." instance=ExtResource("gameover")]
+
+[node name="LevelClear" parent="." instance=ExtResource("levelclear")]
