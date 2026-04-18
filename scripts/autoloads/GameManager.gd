@@ -54,6 +54,11 @@ func start_game(initial_seed: int = -1) -> void:
 	# randi() returns a random 32-bit unsigned int.
 	# [JS equiv]  Math.floor(Math.random() * 2147483647)
 	seed = initial_seed if initial_seed >= 0 else randi() % 2147483647
+	# Emit resets so HUD refreshes immediately — without these, the HUD would
+	# keep showing the previous game's final lives/score after a restart.
+	# [JS equiv]  this.dispatchEvent(new CustomEvent('livesChanged', { detail: 3 }))
+	emit_signal("lives_changed", lives)
+	emit_signal("score_changed", score)
 	_set_state(State.WAITING)
 
 ## Called by Game.gd immediately after the ball is launched (player tapped).

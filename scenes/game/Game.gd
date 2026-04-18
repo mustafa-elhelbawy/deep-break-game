@@ -28,6 +28,13 @@ extends Node2D
 @onready var _game_over: CanvasLayer   = $GameOver
 @onready var _level_clear: CanvasLayer = $LevelClear
 
+# ── State ──────────────────────────────────────────────────────────────────────
+# Tracks the state we came FROM so WAITING knows whether to re-spawn bricks.
+# After DEAD (life lost), bricks must NOT reset — the player continues the same layout.
+# After LEVEL_CLEAR or GAME_OVER, bricks DO reset for a fresh grid.
+# [JS equiv]  this._prevState = State.TITLE
+var _prev_state: GameManager.State = GameManager.State.TITLE
+
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
@@ -39,11 +46,9 @@ func _ready() -> void:
 	# [JS equiv]  gameManager.addEventListener('stateChanged', this._onStateChanged.bind(this))
 	GameManager.state_changed.connect(_on_state_changed)
 
-	# Connect GameManager score/lives directly to HUD.
-	# HUD.gd also connects these in its own _ready() — both connections are safe
-	# (Godot allows multiple listeners on the same signal).
-	GameManager.score_changed.connect(_hud.update_score)
-	GameManager.lives_changed.connect(_hud.update_lives)
+	# NOTE: score_changed / lives_changed are connected inside HUD._ready() — no
+	# need to connect them here as well. Double-connecting the same Callable prints
+	# a Godot warning and the second connect is silently ignored anyway.
 
 	# Connect BrickGrid aggregate signals.
 	_grid.all_cleared.connect(_on_all_cleared)
@@ -64,7 +69,12 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 	# [JS equiv]  switch(newState) { case State.WAITING: ...; break; }
 	match new_state:
 		GameManager.State.WAITING:
-			_spawn_level()
+			# Only (re)spawn bricks when starting fresh — NOT when recovering from a
+			# lost ball. After DEAD the same brick layout must persist so the player
+			# continues from where the ball fell, and accumulated score is preserved.
+			# [JS equiv]  if (this._prevState !== State.DEAD) this._spawnLevel()
+			if _prev_state != GameManager.State.DEAD:
+				_spawn_level()
 			_ball.reset_to_paddle(_paddle.global_position)
 			_game_over.hide()
 			_level_clear.hide()
@@ -88,6 +98,10 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 			_ball.deactivate()
 			# Phase 4: AudioManager.play("level_clear") here.
 			_level_clear.show_for_level(GameManager.level)
+
+	# Record this state so the next transition knows where we came from.
+	# [JS equiv]  this._prevState = newState
+	_prev_state = new_state
 
 # ── Input ──────────────────────────────────────────────────────────────────────
 

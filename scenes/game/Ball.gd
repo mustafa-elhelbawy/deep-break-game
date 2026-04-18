@@ -23,9 +23,17 @@ signal lost
 # scale with level number via set_speed_for_level(level).
 const BASE_SPEED: float = 400.0
 
-# Stuck-ball watchdog: if vertical speed stays near zero for this many seconds,
-# the ball is probably trapped in a horizontal oscillation.
-const STUCK_TIMEOUT: float = 5.0
+# Minimum absolute vertical speed enforced after every bounce.
+# Prevents the ball from travelling nearly horizontally, which causes it to
+# bounce left–right many times without reaching the bricks or paddle.
+# 120 px/s ≈ 30% of BASE_SPEED — allows ~72° max angle from vertical.
+# [JS equiv]  const MIN_VERTICAL_SPEED = 120
+const MIN_VERTICAL_SPEED: float = 120.0
+
+# Stuck-ball watchdog: backup safety net in case the ball somehow enters a
+# near-horizontal trajectory that the per-bounce clamp missed (edge case).
+# Reduced from 5 s to 2 s because MIN_VERTICAL_SPEED handles the common case.
+const STUCK_TIMEOUT: float = 2.0
 
 # ── State ──────────────────────────────────────────────────────────────────────
 # [GDScript] Member variables at class scope — equivalent to 'this._velocity' in JS.
@@ -107,10 +115,23 @@ func _move_and_reflect(delta: float) -> void:
 	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(BASE_SPEED)
 	_velocity = _velocity.normalized() * BASE_SPEED
 
+	# ── Enforce minimum vertical speed ────────────────────────────────────────
+	# After a grazing bounce (e.g. hitting a brick corner or a wall at a shallow
+	# angle) the vertical component can drop near zero, trapping the ball in a
+	# left-right horizontal oscillation for many seconds.
+	# Fix: if |vy| is below the threshold, snap it to ±MIN_VERTICAL_SPEED,
+	# preserving the original vertical direction (up or down). If vy is exactly
+	# zero, default to upward (-y in Godot 2D) so the ball heads toward the bricks.
+	# [JS equiv]  if (Math.abs(vy) < MIN_VY) vy = vy <= 0 ? -MIN_VY : MIN_VY
+	if abs(_velocity.y) < MIN_VERTICAL_SPEED:
+		_velocity.y = -MIN_VERTICAL_SPEED if _velocity.y <= 0.0 else MIN_VERTICAL_SPEED
+		_velocity = _velocity.normalized() * BASE_SPEED
+
 func _check_stuck(delta: float) -> void:
-	# If |vy| < 30 px/s the ball is nearly horizontal — potential infinite loop.
+	# Backup watchdog — fires only if the per-bounce clamp somehow missed.
+	# Uses the same MIN_VERTICAL_SPEED threshold for consistency.
 	# abs() = Math.abs() in JS.
-	if abs(_velocity.y) < 30.0:
+	if abs(_velocity.y) < MIN_VERTICAL_SPEED:
 		_stuck_timer += delta
 	else:
 		_stuck_timer = 0.0
