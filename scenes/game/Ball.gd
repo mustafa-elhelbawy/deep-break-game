@@ -120,11 +120,29 @@ func _move_and_reflect(delta: float) -> void:
 		# is_in_group("bricks") will never be true until Phase 2 adds bricks.
 		collider.take_hit()
 
-	# ── Reflect velocity across the collision normal ──────────────────────────
-	# bounce(normal) computes:  v' = v - 2 * dot(v, n) * n  (mirror reflection)
-	# get_normal() returns the surface normal at the hit point.
-	# [JS equiv]  No built-in; the formula above is the standard reflection.
-	_velocity = _velocity.bounce(collision.get_normal())
+	# ── Reflect or deflect based on what was hit ──────────────────────────────
+	# Paddle hit: compute angle from contact position for skill-based deflection.
+	# All other surfaces: mirror reflection across the collision normal.
+	# [JS equiv]  collider instanceof AnimatableBody2D ? paddleDeflect() : bounce()
+	if collider is AnimatableBody2D:
+		# contact_x in [-1, +1]: -1 = left edge, 0 = centre, +1 = right edge.
+		# [JS equiv]  const t = (ball.x - paddle.x) / (paddle.width / 2)
+		var paddle_half: float = collider.get_node("CollisionShape2D").shape.size.x * 0.5
+		var contact_x: float = clampf(
+			(global_position.x - collider.global_position.x) / paddle_half,
+			-1.0, 1.0
+		)
+		# Map contact_x to a launch angle capped at ±60° from vertical.
+		# sin/cos give the horizontal/vertical components of a unit direction vector.
+		# -abs(cos) ensures the ball always travels upward after a paddle hit.
+		# [JS equiv]  const angle = t * Math.PI / 3;  vx = sin(angle); vy = -|cos(angle)|
+		var angle: float = contact_x * (PI / 3.0)
+		_velocity = Vector2(sin(angle), -abs(cos(angle))) * _current_speed
+	else:
+		# bounce(normal) computes:  v' = v - 2 * dot(v, n) * n  (mirror reflection)
+		# get_normal() returns the surface normal at the hit point.
+		# [JS equiv]  No built-in; the formula above is the standard reflection.
+		_velocity = _velocity.bounce(collision.get_normal())
 
 	# Re-normalise then rescale: floating-point arithmetic causes tiny speed drift
 	# across hundreds of bounces. This keeps speed exactly at _current_speed always.
