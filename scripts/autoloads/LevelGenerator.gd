@@ -52,6 +52,14 @@ const POWERUP_TABLE: Array = [
 # [JS equiv]  const POWERUP_CHANCE = 0.12
 const POWERUP_CHANCE: float = 0.12
 
+# ── Flip table (T060) ─────────────────────────────────────────────────────────
+# Determines at what levels the layout can be flipped (paddle at top, bricks at bottom).
+# RNG draw happens LAST — after collapse_speed — to preserve seed order.
+# [JS equiv]  const FLIP_TABLE = [{ threshold: 15, chance: 0.30 }]
+const FLIP_TABLE: Array = [
+	{ "threshold": 15, "chance": 0.30 },
+]
+
 # ── Mobile brick table (T058) ──────────────────────────────────────────────────
 # Determines what fraction of bricks collapse downward and how fast.
 # RNG calls for collapse happen AFTER powerup calls to preserve seed order.
@@ -177,12 +185,17 @@ func generate(seed: int, level: int) -> Dictionary:
 				"collapse_speed": collapse_speed,
 			})
 
-	# Wrap result in a top-level Dictionary so callers get metadata alongside bricks.
-	# layout_flipped is always false here — T060 adds real flip logic.
-	# [JS equiv]  return { bricks: result, layoutFlipped: false }
+	# layout_flipped draw — ALWAYS consume one rng call (after all brick-loop draws)
+	# so adding future post-loop draws never shifts this one.
+	# [JS equiv]  const flipRoll = rng.random(); const layoutFlipped = flipChance > 0 && flipRoll < flipChance
+	var flip_chance: float = _get_flip_chance(level)
+	var flip_roll: float = rng.randf()
+	var layout_flipped: bool = flip_chance > 0.0 and flip_roll < flip_chance
+
+	# [JS equiv]  return { bricks: result, layoutFlipped }
 	return {
 		"bricks":         result,
-		"layout_flipped": false,
+		"layout_flipped": layout_flipped,
 	}
 
 # ── Private helpers ────────────────────────────────────────────────────────────
@@ -196,6 +209,15 @@ func _get_available_powerups(level: int) -> Array:
 		if level >= entry["threshold"]:
 			pool = entry["types"]
 	return pool
+
+## Returns the flip chance (0.0–1.0) for this level. 0.0 = never flip.
+## [JS equiv]  _getFlipChance(level) { return FLIP_TABLE.filter(e => level >= e.threshold).at(-1)?.chance ?? 0 }
+func _get_flip_chance(level: int) -> float:
+	var chance: float = 0.0
+	for entry in FLIP_TABLE:
+		if level >= entry["threshold"]:
+			chance = entry["chance"]
+	return chance
 
 ## Returns the mobile-brick config active for this level, or empty dict if none.
 ## An empty dict means no mobile bricks for levels below threshold 10.

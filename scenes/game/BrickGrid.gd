@@ -17,7 +17,8 @@ const BRICK_W: float   = 44.0
 const BRICK_H: float   = 18.0
 const PADDING_X: float = 4.0
 const PADDING_Y: float = 4.0
-# Top-left corner of the grid — below HUD area.
+# Top-left corner of the grid — below HUD area in normal mode.
+# In flipped mode the origin is mirrored: rows count upward from (35, screen_h - 60).
 # [JS equiv]  const GRID_ORIGIN = { x: 35, y: 60 }
 const GRID_ORIGIN: Vector2 = Vector2(35.0, 60.0)
 
@@ -35,13 +36,17 @@ signal powerup_dropped(type: String, pos: Vector2)
 
 ## Clears current bricks and spawns a new layout from descriptors.
 ## descriptors: Array of Dictionaries with keys:
-##   "grid_pos"   : Vector2i  — column and row in the grid
-##   "hit_points" : int       — 1–3 for standard; 0 for indestructible
-##   "tier"       : int       — 0–3, maps to atlas colour region
+##   "grid_pos"       : Vector2i  — column and row in the grid
+##   "hit_points"     : int       — 1–3 for standard; 0 for indestructible
+##   "tier"           : int       — 0–3, maps to atlas colour region
+##   "collapse_speed" : float     — 0 = static; > 0 = mobile
+##
+## flipped: when true, bricks are placed from the bottom of the screen upward (T061).
+##          Row 0 = bottom-most row, row N = closer to the top.
 ##
 ## Called by Game.gd on every new level start.
-## [JS equiv]  brickGrid.spawn(descriptors)
-func spawn(descriptors: Array) -> void:
+## [JS equiv]  brickGrid.spawn(descriptors, flipped)
+func spawn(descriptors: Array, flipped: bool = false) -> void:
 	# Remove all existing brick nodes.
 	# [GDScript] get_children() returns all direct children as an Array.
 	# [JS equiv]  [...this.children].forEach(c => c.remove())
@@ -54,16 +59,29 @@ func spawn(descriptors: Array) -> void:
 	if layout.is_empty():
 		layout = _fallback_layout()
 
+	# In flipped mode bricks count upward from the bottom margin.
+	# screen_h mirrors the normal GRID_ORIGIN.y gap from the opposite edge.
+	# [JS equiv]  const screenH = window.innerHeight
+	var screen_h: float = get_viewport().get_visible_rect().size.y
+
 	for desc in layout:
 		var brick: StaticBody2D = BrickScene.instantiate()
 		add_child(brick)
 
 		var col: int = desc["grid_pos"].x
 		var row: int = desc["grid_pos"].y
-		brick.global_position = GRID_ORIGIN + Vector2(
-			col * (BRICK_W + PADDING_X),
-			row * (BRICK_H + PADDING_Y)
-		)
+
+		# Normal:  y increases downward from the top margin.
+		# Flipped: y decreases upward from the bottom margin (mirrored origin).
+		# [JS equiv]  const y = flipped ? screenH - ORIGIN.y - row*step : ORIGIN.y + row*step
+		var brick_x: float = GRID_ORIGIN.x + col * (BRICK_W + PADDING_X)
+		var brick_y: float
+		if flipped:
+			brick_y = (screen_h - GRID_ORIGIN.y) - row * (BRICK_H + PADDING_Y)
+		else:
+			brick_y = GRID_ORIGIN.y + row * (BRICK_H + PADDING_Y)
+
+		brick.global_position = Vector2(brick_x, brick_y)
 		brick.hit_points = desc["hit_points"]
 		brick.tier       = desc["tier"]
 
@@ -73,13 +91,12 @@ func spawn(descriptors: Array) -> void:
 			brick.set_powerup_type(desc["powerup_type"])
 
 		# Apply mobile drift if descriptor carries a collapse_speed > 0 (T058).
-		# set_paddle_y() uses a placeholder (700 px); Game.gd _wire_mobile_bricks()
-		# injects the real paddle position after spawn (T059).
-		# [JS equiv]  if (desc.collapseSpeed > 0) { brick.setMobile(desc.collapseSpeed); brick.setPaddleY(700) }
+		# set_paddle_y() uses a placeholder; Game.gd _wire_mobile_bricks()
+		# injects the real paddle position and direction after spawn (T059/T063).
+		# [JS equiv]  if (desc.collapseSpeed > 0) { brick.setMobile(desc.collapseSpeed) }
 		var collapse_speed: float = desc.get("collapse_speed", 0.0)
 		if collapse_speed > 0.0:
 			brick.set_mobile(collapse_speed)
-			brick.set_paddle_y(700.0)
 
 		# Connect brick signals to this grid's relay handlers.
 		# [GDScript] .connect(Callable) — registers a listener.

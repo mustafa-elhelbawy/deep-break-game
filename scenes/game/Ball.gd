@@ -76,6 +76,11 @@ var _current_speed: float = BASE_SPEED
 # [JS equiv]  #speedModifier = 1.0  (private class field)
 var _speed_modifier: float = 1.0
 
+# Flip state — when true, the lethal edge switches from the bottom to the top.
+# Set by Game.gd._apply_flip() before the ball is placed on the paddle (T062).
+# [JS equiv]  #flipped = false  (private class field)
+var _flipped: bool = false
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 ## Launch the ball in the given direction at BASE_SPEED.
@@ -105,6 +110,21 @@ func set_speed_for_level(level: int) -> void:
 	# minf() is the float version of min() — same as Math.min() in JS.
 	var scale: float = minf(1.0 + level * 0.08, 2.0)
 	_current_speed = BASE_SPEED * scale
+
+## Set the flip state. Called by Game.gd._apply_flip() before each level start.
+## When flipped = true the ball is lost at the top edge (y < -20) instead of the bottom.
+## [JS equiv]  setFlipped(v) { this._flipped = v }
+func set_flipped(flipped: bool) -> void:
+	_flipped = flipped
+
+## Stop movement and teleport to world_pos. Used by Game.gd to place the ball on
+## the paddle without hardcoding the ±30 offset — the caller computes the offset.
+## Cleaner than accessing _active/_velocity from outside (ADR-004).
+## [JS equiv]  park(pos) { this._active = false; this._velocity = zero; this.pos = pos }
+func park(world_pos: Vector2) -> void:
+	_active = false
+	_velocity = Vector2.ZERO
+	global_position = world_pos
 
 ## Stop the ball immediately. Called by Game.gd on game-over or level-clear.
 func deactivate() -> void:
@@ -243,12 +263,20 @@ func _check_stuck(delta: float) -> void:
 		_stuck_timer = 0.0
 
 func _check_lost() -> void:
-	# The bottom of the viewport is at y = viewport_height.
-	# Allow 20px grace past the bottom before declaring the ball lost.
-	# get_viewport().get_visible_rect() returns the current viewport Rect2.
+	# Normal: ball falls off the bottom edge (y > screen_h).
+	# Flipped: ball flies off the top edge (y < 0).
+	# 20 px grace in both directions reduces accidental triggers on corner bounces.
 	# [JS equiv]  window.innerHeight
 	var screen_h: float = get_viewport().get_visible_rect().size.y
-	if global_position.y > screen_h + 20.0:
+	var fell_off: bool
+	if _flipped:
+		# [JS equiv]  this.y < -20
+		fell_off = global_position.y < -20.0
+	else:
+		# [JS equiv]  this.y > screenH + 20
+		fell_off = global_position.y > screen_h + 20.0
+
+	if fell_off:
 		_active = false
 		# emit_signal() fires 'lost' to all connected listeners synchronously.
 		# [JS equiv]  this.dispatchEvent(new Event('lost'))
