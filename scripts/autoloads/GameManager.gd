@@ -95,9 +95,10 @@ func advance_level() -> void:
 	_set_state(State.WAITING)
 
 ## Called by GameOver screen's "Restart" button.
-## Fully resets and starts a new game session.
+## Returns to TITLE state — Main.gd will swap Game.tscn for Title.tscn.
+## start_game() is called later by Title.gd when the player taps again.
 func restart() -> void:
-	start_game()
+	_set_state(State.TITLE)
 
 ## Add points to the running score. Called by Game.gd on each brick_destroyed event.
 ## Score formula: 10 × (tier + 1). Tier 0 = 10 pts, tier 3 = 40 pts.

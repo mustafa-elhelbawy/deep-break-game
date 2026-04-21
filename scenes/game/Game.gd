@@ -35,6 +35,11 @@ extends Node2D
 # [JS equiv]  this._prevState = State.TITLE
 var _prev_state: GameManager.State = GameManager.State.TITLE
 
+# Active ball counter for multi-ball (T055). Starts at 1 (primary ball only).
+# Lives only decrement when _ball_count drops to zero (ADR-006).
+# [JS equiv]  #ballCount = 1
+var _ball_count: int = 1
+
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
@@ -54,13 +59,16 @@ func _ready() -> void:
 	_grid.all_cleared.connect(_on_all_cleared)
 	_grid.brick_destroyed.connect(_on_brick_destroyed)
 
-	# Connect Ball lost signal → GameManager life tracking.
-	# [GDScript] Inline Callable (lambda) — like an arrow function in JS.
-	# [JS equiv]  ball.addEventListener('lost', () => gameManager.loseLife())
-	_ball.lost.connect(func(): GameManager.lose_life())
+	# Connect Ball lost signal → life counter (T049 / ADR-006).
+	# Named method — cannot double-fire like an anonymous lambda when multi-ball is added.
+	# [JS equiv]  ball.addEventListener('lost', this._onPrimaryBallLost.bind(this))
+	_ball.lost.connect(_on_primary_ball_lost)
 
-	# Kick off the first game session.
-	GameManager.start_game()
+	# React to the current state rather than calling start_game() directly.
+	# Main.gd loaded us because GameManager.state is already WAITING (set by Title.gd).
+	# Calling start_game() here would reset score/lives to zero on every scene swap.
+	# [JS equiv]  this._onStateChanged(gameManager.state)
+	_on_state_changed(GameManager.state)
 
 # ── State machine reactor ──────────────────────────────────────────────────────
 
@@ -156,3 +164,20 @@ func _on_brick_destroyed(pos: Vector2, tier: int) -> void:
 	JuiceManager.emit_burst(pos, tier)
 	JuiceManager.shake(0.3, 0.1)
 	AudioManager.play("brick_destroy")
+
+# ── Ball lost handlers ─────────────────────────────────────────────────────────
+
+## Primary ball lost — delegates to shared counter logic (ADR-006).
+## Separate named method so it can be disconnected and won't double-fire
+## when extra-ball lambdas are also connected (T055).
+func _on_primary_ball_lost() -> void:
+	_on_ball_lost()
+
+## Shared ball-lost counter. Decrements _ball_count; only loses a life when all
+## active balls are gone. Extra balls (T055) call this too via their own lambdas.
+func _on_ball_lost() -> void:
+	_ball_count -= 1
+	# [JS equiv]  if (this._ballCount <= 0) { this._ballCount = 1; gameManager.loseLife() }
+	if _ball_count <= 0:
+		_ball_count = 1
+		GameManager.lose_life()

@@ -1,0 +1,70 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Orbitron-Bold.ttf" id="font"]
+
+[sub_resource type="LabelSettings" id="deep_label_settings"]
+font = ExtResource("font")
+font_size = 64
+font_color = Color(0, 0.784, 0.722, 1)
+outline_size = 4
+outline_color = Color(0, 0.302, 0.278, 1)
+
+[sub_resource type="LabelSettings" id="break_label_settings"]
+font = ExtResource("font")
+font_size = 64
+font_color = Color(1, 0.757, 0.027, 1)
+outline_size = 4
+outline_color = Color(0.478, 0.361, 0, 1)
+
+[sub_resource type="Animation" id="float_anim"]
+resource_name = "float"
+length = 3.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.5, 3),
+"transitions": PackedFloat32Array(2, 2, 2),
+"update": 0,
+"values": [Vector2(180, 300), Vector2(180, 308), Vector2(180, 300)]
+}
+
+[sub_resource type="AnimationLibrary" id="anim_library"]
+_data = {
+"float": SubResource("float_anim")
+}
+
+[node name="Logo" type="Node2D"]
+position = Vector2(180, 300)
+
+[node name="DeepLabel" type="Label" parent="."]
+offset_left = -120.0
+offset_top = -88.0
+offset_right = 120.0
+offset_bottom = -8.0
+mouse_filter = 2
+text = "DEEP"
+label_settings = SubResource("deep_label_settings")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BreakLabel" type="Label" parent="."]
+offset_left = -120.0
+offset_top = 8.0
+offset_right = 120.0
+offset_bottom = 88.0
+mouse_filter = 2
+text = "BREAK"
+label_settings = SubResource("break_label_settings")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+autoplay = "float"
+libraries = {
+"": SubResource("anim_library")
+}
