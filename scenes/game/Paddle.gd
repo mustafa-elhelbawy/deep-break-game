@@ -41,6 +41,13 @@ var paddle_velocity_x: float = 0.0
 # [JS equiv]  #prevX = 0.0  (private class field)
 var _prev_x: float = 0.0
 
+# ── Flip state ─────────────────────────────────────────────────────────────────
+# When flipped the paddle sits at the top of the screen and the touch zone
+# switches to the upper 40% instead of the lower 40%.
+# Set by Game.gd._apply_flip() before each level start (T063).
+# [JS equiv]  #flipped = false  (private class field)
+var _flipped: bool = false
+
 # ── Touch tracking ─────────────────────────────────────────────────────────────
 # Touch index of the finger currently controlling the paddle.
 # -1 = no active touch (sentinel value — Godot touch indices start at 0).
@@ -89,17 +96,18 @@ func _input(event: InputEvent) -> void:
 		_handle_drag(event as InputEventScreenDrag)
 
 func _handle_touch(event: InputEventScreenTouch) -> void:
-	# Lower zone: bottom 40% of the screen.
-	# _screen_height * 0.60 is the Y coordinate where the zone begins.
-	# [JS equiv]  const lowerZoneTop = window.innerHeight * 0.60
-	var lower_zone_top: float = _screen_height * 0.60
-
+	# Normal:  lower 40% zone — touch Y must be >= screen_height * 0.60.
+	# Flipped: upper 40% zone — touch Y must be <= screen_height * 0.40.
+	# [JS equiv]  const zoneThreshold = flipped ? screenH * 0.40 : screenH * 0.60
 	if event.pressed:
-		# Claim this touch only if:
-		#   (a) no touch is currently active  AND
-		#   (b) the touch starts inside the lower zone
-		# [JS equiv]  if (this._activeTouchId === null && event.clientY >= lowerZoneTop)
-		if _active_touch_index == -1 and event.position.y >= lower_zone_top:
+		# Claim this touch only if no touch is currently active AND it's in the zone.
+		# [JS equiv]  if (this._activeTouchId === null && inZone(event))
+		var in_zone: bool
+		if _flipped:
+			in_zone = event.position.y <= _screen_height * 0.40
+		else:
+			in_zone = event.position.y >= _screen_height * 0.60
+		if _active_touch_index == -1 and in_zone:
 			_active_touch_index = event.index
 			# Snap paddle to the finger's X immediately on first contact.
 			_move_to_x(event.position.x)
@@ -118,6 +126,12 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 	_move_to_x(event.position.x)
 
 # ── Movement ───────────────────────────────────────────────────────────────────
+
+## Set the flip state. Called by Game.gd._apply_flip() before each level start.
+## Switches the touch zone between lower 40% (normal) and upper 40% (flipped).
+## [JS equiv]  setFlipped(v) { this._flipped = v }
+func set_flipped(flipped: bool) -> void:
+	_flipped = flipped
 
 ## Activates the Wide Paddle effect. Safe to call while already active — resets timer.
 ## Expands collision shape width and sprite scale to WIDE_SCALE× for WIDE_DURATION seconds.

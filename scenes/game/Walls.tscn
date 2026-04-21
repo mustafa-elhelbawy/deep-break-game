@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [sub_resource type="WorldBoundaryShape2D" id="top"]
 normal = Vector2(0, 1)
@@ -8,6 +8,9 @@ normal = Vector2(1, 0)
 
 [sub_resource type="WorldBoundaryShape2D" id="right"]
 normal = Vector2(-1, 0)
+
+[sub_resource type="WorldBoundaryShape2D" id="bottom"]
+normal = Vector2(0, -1)
 
 [node name="Walls" type="Node2D"]
 
@@ -28,3 +31,10 @@ position = Vector2(360, 390)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="WallRight"]
 shape = SubResource("right")
+
+[node name="WallBottom" type="StaticBody2D" parent="."]
+position = Vector2(180, 780)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallBottom"]
+shape = SubResource("bottom")
+disabled = true
