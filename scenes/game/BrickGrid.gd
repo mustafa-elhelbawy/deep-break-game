@@ -72,6 +72,15 @@ func spawn(descriptors: Array) -> void:
 		if desc.get("powerup_type", "") != "":
 			brick.set_powerup_type(desc["powerup_type"])
 
+		# Apply mobile drift if descriptor carries a collapse_speed > 0 (T058).
+		# set_paddle_y() uses a placeholder (700 px); Game.gd _wire_mobile_bricks()
+		# injects the real paddle position after spawn (T059).
+		# [JS equiv]  if (desc.collapseSpeed > 0) { brick.setMobile(desc.collapseSpeed); brick.setPaddleY(700) }
+		var collapse_speed: float = desc.get("collapse_speed", 0.0)
+		if collapse_speed > 0.0:
+			brick.set_mobile(collapse_speed)
+			brick.set_paddle_y(700.0)
+
 		# Connect brick signals to this grid's relay handlers.
 		# [GDScript] .connect(Callable) — registers a listener.
 		# [JS equiv]  brick.addEventListener('destroyed', _on_brick_destroyed)
@@ -80,6 +89,21 @@ func spawn(descriptors: Array) -> void:
 		# Relay power-up drop signal to Game.gd (ADR-002).
 		# [JS equiv]  brick.on('powerupDropped', (...a) => this.emit('powerupDropped', ...a))
 		brick.powerup_dropped.connect(_on_powerup_dropped)
+		# Mobile bricks fire drifted_off when they exit the screen (BUG-2 fix).
+		# Still counts toward the cleared check so the level can end normally.
+		# [JS equiv]  brick.on('driftedOff', () => this._onBrickDriftedOff())
+		brick.drifted_off.connect(_on_brick_drifted_off)
+
+## Returns all mobile bricks currently in the grid.
+## Used by Game.gd _wire_mobile_bricks() to inject the real paddle Y position
+## and connect the reached_paddle signal (T059).
+## [JS equiv]  getMobileBricks() { return [...this.children].filter(b => b._isMobile) }
+func get_mobile_bricks() -> Array:
+	var result: Array = []
+	for child in get_children():
+		if child is StaticBody2D and child._is_mobile:
+			result.append(child)
+	return result
 
 ## Returns the number of destructible bricks still alive.
 ## Used by _check_cleared() to determine the win condition.
@@ -106,6 +130,13 @@ func _on_brick_hit(pos: Vector2) -> void:
 func _on_powerup_dropped(type: String, pos: Vector2) -> void:
 	# Pass through — BrickGrid does not own token spawning.
 	emit_signal("powerup_dropped", type, pos)
+
+func _on_brick_drifted_off() -> void:
+	# Mobile brick left the screen — treat it as destroyed for win-condition purposes.
+	# queue_free() already called inside Brick.gd, so the node count is decreasing.
+	# Defer the cleared check just like _on_brick_destroyed does.
+	# [JS equiv]  setTimeout(() => this._checkCleared(), 0)
+	call_deferred("_check_cleared")
 
 func _check_cleared() -> void:
 	if get_brick_count() == 0:
