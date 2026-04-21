@@ -11,16 +11,25 @@
 extends AnimatableBody2D
 
 # ── Cached dimensions ──────────────────────────────────────────────────────────
-# @onready runs the right-hand assignment during _ready(), after the scene tree
-# is fully built. Like DOMContentLoaded in JS — safe to query child nodes here.
-# [GDScript] @onready var x = expr  ≡  var x; func _ready() { x = expr }
+# Computed in _ready() (not @onready) so _normal_width and _half_width derive
+# from the same shape read, and activate_wide() can mutate them consistently.
 # [JS equiv]  connectedCallback() { this._halfWidth = this.offsetWidth / 2 }
-@onready var _half_width: float = (
-	($CollisionShape2D.shape as RectangleShape2D).size.x / 2.0
-)
+var _half_width: float    = 0.0   # set in _ready from actual shape
+var _normal_width: float  = 120.0 # set in _ready; used to revert wide effect
 
 var _screen_width: float  = 360.0  # updated in _ready from actual viewport
 var _screen_height: float = 780.0  # updated in _ready from actual viewport
+
+# ── Wide Paddle constants ──────────────────────────────────────────────────────
+# [JS equiv]  const WIDE_SCALE = 1.8; const WIDE_DURATION = 10
+const WIDE_SCALE: float    = 1.8
+const WIDE_DURATION: float = 10.0
+
+# ── Wide Paddle state ─────────────────────────────────────────────────────────
+# Timer reference — null when effect is not active.
+# Tracked so re-catching W disconnects the old timeout and resets the 10 s.
+# [JS equiv]  #wideTimer = null  (private class field)
+var _wide_timer: SceneTreeTimer = null
 
 # ── Velocity tracking ─────────────────────────────────────────────────────────
 # Public — read by Ball.gd during paddle contact to compute spin effect (T048).
@@ -49,6 +58,10 @@ func _ready() -> void:
 	_screen_width  = vp.size.x
 	_screen_height = vp.size.y
 	_prev_x = position.x
+	# Derive _normal_width and _half_width from the actual shape at runtime.
+	# Done here (not @onready) so activate_wide() can read _normal_width reliably.
+	_normal_width = ($CollisionShape2D.shape as RectangleShape2D).size.x
+	_half_width   = _normal_width / 2.0
 
 # ── Physics loop ───────────────────────────────────────────────────────────────
 
@@ -105,6 +118,33 @@ func _handle_drag(event: InputEventScreenDrag) -> void:
 	_move_to_x(event.position.x)
 
 # ── Movement ───────────────────────────────────────────────────────────────────
+
+## Activates the Wide Paddle effect. Safe to call while already active — resets timer.
+## Expands collision shape width and sprite scale to WIDE_SCALE× for WIDE_DURATION seconds.
+func activate_wide() -> void:
+	var new_width: float = _normal_width * WIDE_SCALE
+	# Expand collision shape.
+	# [JS equiv]  this.collisionShape.size.x = newWidth
+	($CollisionShape2D.shape as RectangleShape2D).size.x = new_width
+	$Sprite2D.scale.x = WIDE_SCALE
+	_half_width = new_width / 2.0
+
+	# Cancel any existing timer — catching W again resets the 10 s (replacement behaviour).
+	if _wide_timer != null and is_instance_valid(_wide_timer):
+		if _wide_timer.timeout.is_connected(_revert_wide):
+			_wide_timer.timeout.disconnect(_revert_wide)
+
+	# Start a fresh 10 s countdown.
+	# [JS equiv]  clearTimeout(this._wideTimer); this._wideTimer = setTimeout(_revertWide, 10000)
+	_wide_timer = get_tree().create_timer(WIDE_DURATION)
+	_wide_timer.timeout.connect(_revert_wide)
+
+func _revert_wide() -> void:
+	# Restore normal collision width and sprite scale.
+	($CollisionShape2D.shape as RectangleShape2D).size.x = _normal_width
+	$Sprite2D.scale.x = 1.0
+	_half_width = _normal_width / 2.0
+	_wide_timer = null
 
 func _move_to_x(target_x: float) -> void:
 	# Clamp the paddle centre so it never goes outside the viewport.

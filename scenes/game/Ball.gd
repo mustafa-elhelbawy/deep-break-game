@@ -54,6 +54,11 @@ const MAX_SPIN_RAD: float = 0.349
 # [JS equiv]  const MAX_ANGLE_FROM_VERTICAL = 1.222  (70 * Math.PI / 180)
 const MAX_ANGLE_FROM_VERTICAL: float = 1.222
 
+# Slow-motion speed multiplier — ball moves at 55% of its level-scaled speed.
+# Applied as a modifier on top of _current_speed via _speed_modifier.
+# [JS equiv]  const SLOW_SPEED_MODIFIER = 0.55
+const SLOW_SPEED_MODIFIER: float = 0.55
+
 # ── State ──────────────────────────────────────────────────────────────────────
 # [GDScript] Member variables at class scope — equivalent to 'this._velocity' in JS.
 # '_' prefix is the GDScript convention for private members.
@@ -66,15 +71,20 @@ var _stuck_timer: float   = 0.0
 # [JS equiv]  let _currentSpeed = BASE_SPEED
 var _current_speed: float = BASE_SPEED
 
+# Speed multiplier — 1.0 = normal, SLOW_SPEED_MODIFIER = 0.55 during slow-mo.
+# Applied multiplicatively: effective speed = _current_speed * _speed_modifier.
+# [JS equiv]  #speedModifier = 1.0  (private class field)
+var _speed_modifier: float = 1.0
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 ## Launch the ball in the given direction at BASE_SPEED.
 ## Call this from Game.gd when the player taps to serve.
 ## direction does not need to be pre-normalised — this method normalises it.
 func launch(direction: Vector2) -> void:
-	# Use _current_speed (set by set_speed_for_level before this call), not BASE_SPEED.
-	# [JS equiv]  this._velocity = direction.normalize().multiplyScalar(this._currentSpeed)
-	_velocity = direction.normalized() * _current_speed
+	# Use effective speed: _current_speed × _speed_modifier (1.0 normally, 0.55 during slow-mo).
+	# [JS equiv]  this._velocity = direction.normalize().multiplyScalar(this._currentSpeed * this._speedModifier)
+	_velocity = direction.normalized() * (_current_speed * _speed_modifier)
 	_active = true
 	_stuck_timer = 0.0
 
@@ -100,6 +110,23 @@ func set_speed_for_level(level: int) -> void:
 func deactivate() -> void:
 	_active = false
 	_velocity = Vector2.ZERO
+
+## Activate slow-motion: set modifier to 0.55 and immediately rescale velocity.
+## Safe to call while already active — idempotent (timer reset is managed by Game.gd).
+func activate_slow() -> void:
+	_speed_modifier = SLOW_SPEED_MODIFIER
+	# Rescale existing velocity immediately — no need to wait for next bounce.
+	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(effectiveSpeed)
+	if _active:
+		_velocity = _velocity.normalized() * (_current_speed * _speed_modifier)
+
+## Revert slow-motion: restore modifier to 1.0 and rescale velocity back to full speed.
+## Called by Game.gd when the 10 s timer expires.
+func revert_slow() -> void:
+	_speed_modifier = 1.0
+	if _active:
+		# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(this._currentSpeed)
+		_velocity = _velocity.normalized() * _current_speed
 
 # ── Physics loop ───────────────────────────────────────────────────────────────
 
@@ -162,8 +189,9 @@ func _move_and_reflect(delta: float) -> void:
 		angle = clampf(angle + spin, -MAX_ANGLE_FROM_VERTICAL, MAX_ANGLE_FROM_VERTICAL)
 
 		# Build velocity: x = sin(angle), y = -|cos(angle)| (always upward off paddle).
-		# [JS equiv]  velocity = { x: Math.sin(angle), y: -Math.abs(Math.cos(angle)) } * speed
-		_velocity = Vector2(sin(angle), -abs(cos(angle))) * _current_speed
+		# Apply speed modifier so slow-mo affects paddle deflection speed too.
+		# [JS equiv]  velocity = { x: Math.sin(angle), y: -Math.abs(Math.cos(angle)) } * effectiveSpeed
+		_velocity = Vector2(sin(angle), -abs(cos(angle))) * (_current_speed * _speed_modifier)
 
 		# Paddle contact sound — plays every time the ball bounces off the paddle.
 		# [JS equiv]  audioManager.play('paddleHit')
@@ -181,9 +209,9 @@ func _move_and_reflect(delta: float) -> void:
 		_velocity = _velocity.rotated(jitter)
 
 	# Re-normalise then rescale: floating-point arithmetic causes tiny speed drift
-	# across hundreds of bounces. This keeps speed exactly at _current_speed always.
-	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(this._currentSpeed)
-	_velocity = _velocity.normalized() * _current_speed
+	# across hundreds of bounces. This keeps speed exactly at effective speed always.
+	# [JS equiv]  this._velocity = this._velocity.normalize().multiplyScalar(this._currentSpeed * this._speedModifier)
+	_velocity = _velocity.normalized() * (_current_speed * _speed_modifier)
 
 	# ── Enforce minimum vertical speed ────────────────────────────────────────
 	# After a grazing bounce (e.g. hitting a brick corner or a wall at a shallow
