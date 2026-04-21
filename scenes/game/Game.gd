@@ -20,6 +20,9 @@ extends Node2D
 # Power-up token scene — spawned here, not in Brick.gd, to keep visuals out of data nodes (ADR-002).
 # [JS equiv]  import PowerUpScene from './PowerUp.js'
 const PowerUpScene: PackedScene = preload("res://scenes/game/PowerUp.tscn")
+# Extra ball scene — reused for multi-ball M power-up (T055).
+# [JS equiv]  import BallScene from './Ball.js'
+const BallScene: PackedScene = preload("res://scenes/game/Ball.tscn")
 
 # ── Node references ────────────────────────────────────────────────────────────
 # [GDScript] @onready resolves paths once the scene tree is built.
@@ -44,6 +47,15 @@ var _prev_state: GameManager.State = GameManager.State.TITLE
 # Lives only decrement when _ball_count drops to zero (ADR-006).
 # [JS equiv]  #ballCount = 1
 var _ball_count: int = 1
+
+# Extra ball instances spawned by M power-up. Primary ball is always _ball.
+# [JS equiv]  #extraBalls = []  (private class field)
+var _extra_balls: Array[CharacterBody2D] = []
+
+# Slow-motion timer — tracked to cancel on re-catch (replacement behaviour).
+# [JS equiv]  #slowTimer = null
+var _slow_timer: SceneTreeTimer = null
+const SLOW_DURATION: float = 10.0
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +122,8 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 			# continues from where the ball fell, and accumulated score is preserved.
 			# [JS equiv]  if (cameFrom !== State.DEAD) this._spawnLevel()
 			if came_from != GameManager.State.DEAD:
+				# Fresh level start — clean up any extra balls from previous level.
+				_clear_extra_balls()
 				_spawn_level()
 			_ball.reset_to_paddle(_paddle.global_position)
 			_game_over.hide()
@@ -126,11 +140,15 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 			GameManager.reset_after_death()
 
 		GameManager.State.GAME_OVER:
+			# Clean up extra balls before stopping — avoids orphaned ball nodes.
+			_clear_extra_balls()
 			_ball.deactivate()
 			AudioManager.play("game_over")
 			_game_over.show_with_score(GameManager.score)
 
 		GameManager.State.LEVEL_CLEAR:
+			# Clean up extra balls — next level starts fresh with one ball.
+			_clear_extra_balls()
 			_ball.deactivate()
 			AudioManager.play("level_clear")
 			_level_clear.show_for_level(GameManager.level)
@@ -216,10 +234,88 @@ func _on_powerup_dropped(type: String, pos: Vector2) -> void:
 
 ## Called when the paddle catches a falling power-up token.
 ## type: "W" (Wide), "S" (Slow), "M" (Multi-Ball)
-## Effects are applied in T053–T055. This stub prevents errors until then.
 func _on_powerup_caught(type: String) -> void:
-	# [GDScript] Print for verification during development — remove after T056.
-	print("[PowerUp] caught: ", type)
-	# TODO T053: _activate_wide() when type == "W"
-	# TODO T054: _activate_slow() when type == "S"
-	# TODO T055: _activate_multiball() when type == "M"
+	match type:
+		"W":
+			# Expand paddle to 1.8× width for 10 s. Catching again resets timer.
+			# [JS equiv]  this._paddle.activateWide()
+			_paddle.activate_wide()
+		"S":
+			# Slow all active balls to 55% speed for 10 s. Catching again resets timer.
+			_activate_slow()
+		"M":
+			# Spawn a second ball. No-op if one is already active.
+			_activate_multiball()
+
+# ── Slow-motion effect (T054) ──────────────────────────────────────────────────
+
+func _activate_slow() -> void:
+	# Cancel existing timer on re-catch (replacement behaviour).
+	if _slow_timer != null and is_instance_valid(_slow_timer):
+		if _slow_timer.timeout.is_connected(_revert_slow):
+			_slow_timer.timeout.disconnect(_revert_slow)
+
+	# Apply to primary ball.
+	# [JS equiv]  this._ball.activateSlow()
+	_ball.activate_slow()
+	# Apply to any extra balls active during multi-ball.
+	for b in _extra_balls:
+		if is_instance_valid(b):
+			b.activate_slow()
+
+	_slow_timer = get_tree().create_timer(SLOW_DURATION)
+	_slow_timer.timeout.connect(_revert_slow)
+
+func _revert_slow() -> void:
+	_ball.revert_slow()
+	for b in _extra_balls:
+		if is_instance_valid(b):
+			b.revert_slow()
+	_slow_timer = null
+
+# ── Multi-ball effect (T055) ───────────────────────────────────────────────────
+
+func _activate_multiball() -> void:
+	# Only one extra ball at a time — catching M while active does nothing.
+	# [JS equiv]  if (this._extraBalls.length > 0) return
+	if _extra_balls.size() > 0:
+		return
+
+	var extra: CharacterBody2D = BallScene.instantiate()
+	add_child(extra)
+	# Offset slightly so the two balls don't start at the identical position.
+	extra.global_position = _ball.global_position + Vector2(20.0, 0.0)
+	extra.set_speed_for_level(GameManager.level)
+
+	# Inherit slow-mo if already active.
+	if _slow_timer != null and is_instance_valid(_slow_timer):
+		extra.activate_slow()
+
+	# Launch in mirror direction for variety.
+	# [JS equiv]  extraBall.launch({ x: 0.3, y: -1.0 })
+	extra.launch(Vector2(0.3, -1.0))
+
+	_extra_balls.append(extra)
+	_ball_count += 1
+	# Anonymous lambda here is intentional — extra balls are cleaned up by _clear_extra_balls()
+	# when the level ends, so disconnection on scene teardown is not a concern.
+	# [JS equiv]  extra.addEventListener('lost', () => this._onExtraBallLost(extra))
+	extra.lost.connect(func(): _on_extra_ball_lost(extra))
+
+func _on_extra_ball_lost(ball: CharacterBody2D) -> void:
+	_extra_balls.erase(ball)
+	_on_ball_lost()
+
+## Returns active extra balls — used by _activate_slow / _revert_slow.
+func _get_extra_balls() -> Array:
+	return _extra_balls
+
+## Frees all extra balls and resets _ball_count to 1.
+## Called on WAITING (non-DEAD), GAME_OVER, and LEVEL_CLEAR transitions.
+func _clear_extra_balls() -> void:
+	for b in _extra_balls:
+		if is_instance_valid(b):
+			b.queue_free()
+	_extra_balls.clear()
+	# [JS equiv]  this._ballCount = 1
+	_ball_count = 1
