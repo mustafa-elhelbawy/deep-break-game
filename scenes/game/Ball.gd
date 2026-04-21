@@ -39,6 +39,21 @@ const MIN_VERTICAL_SPEED: float = 120.0
 # Reduced from 5 s to 2 s because MIN_VERTICAL_SPEED handles the common case.
 const STUCK_TIMEOUT: float = 2.0
 
+# Maximum random angle variation applied after each wall/brick bounce.
+# ±5° in radians — small enough to not feel random, large enough to break repetition.
+# Jitter does NOT apply to paddle hits (paddle has its own full angle system).
+# [JS equiv]  const BOUNCE_JITTER_RAD = 0.0873  (5 * Math.PI / 180)
+const BOUNCE_JITTER_RAD: float = 0.0873
+
+# Maximum spin added by paddle horizontal velocity at impact. ±20° in radians.
+# Capped so the ball never flies nearly horizontal even with a fast paddle drag.
+# [JS equiv]  const MAX_SPIN_RAD = 0.349  (20 * Math.PI / 180)
+const MAX_SPIN_RAD: float = 0.349
+
+# Maximum absolute angle from vertical (70°) — safety ceiling for angle + spin combined.
+# [JS equiv]  const MAX_ANGLE_FROM_VERTICAL = 1.222  (70 * Math.PI / 180)
+const MAX_ANGLE_FROM_VERTICAL: float = 1.222
+
 # ── State ──────────────────────────────────────────────────────────────────────
 # [GDScript] Member variables at class scope — equivalent to 'this._velocity' in JS.
 # '_' prefix is the GDScript convention for private members.
@@ -132,17 +147,38 @@ func _move_and_reflect(delta: float) -> void:
 			(global_position.x - collider.global_position.x) / paddle_half,
 			-1.0, 1.0
 		)
-		# Map contact_x to a launch angle capped at ±60° from vertical.
-		# sin/cos give the horizontal/vertical components of a unit direction vector.
-		# -abs(cos) ensures the ball always travels upward after a paddle hit.
-		# [JS equiv]  const angle = t * Math.PI / 3;  vx = sin(angle); vy = -|cos(angle)|
+		# Base angle from contact position: ±60° range (PI/3 = 60°).
+		# [JS equiv]  const angle = t * Math.PI / 3
 		var angle: float = contact_x * (PI / 3.0)
+
+		# Spin: paddle horizontal velocity at impact shifts the angle further in the
+		# paddle's travel direction. Normalise against 600 px/s reference — above that,
+		# full MAX_SPIN_RAD is applied. clampf() keeps spin in [-MAX_SPIN, +MAX_SPIN].
+		# [JS equiv]  const spin = clamp(paddle.velocityX / 600, -1, 1) * MAX_SPIN_RAD
+		var spin: float = clampf(collider.paddle_velocity_x / 600.0, -1.0, 1.0) * MAX_SPIN_RAD
+
+		# Clamp combined angle so ball never flies beyond ±70° from vertical.
+		# [JS equiv]  angle = clamp(angle + spin, -MAX_ANGLE_FROM_VERTICAL, MAX_ANGLE_FROM_VERTICAL)
+		angle = clampf(angle + spin, -MAX_ANGLE_FROM_VERTICAL, MAX_ANGLE_FROM_VERTICAL)
+
+		# Build velocity: x = sin(angle), y = -|cos(angle)| (always upward off paddle).
+		# [JS equiv]  velocity = { x: Math.sin(angle), y: -Math.abs(Math.cos(angle)) } * speed
 		_velocity = Vector2(sin(angle), -abs(cos(angle))) * _current_speed
+
+		# Paddle contact sound — plays every time the ball bounces off the paddle.
+		# [JS equiv]  audioManager.play('paddleHit')
+		AudioManager.play("paddle_hit")
 	else:
 		# bounce(normal) computes:  v' = v - 2 * dot(v, n) * n  (mirror reflection)
 		# get_normal() returns the surface normal at the hit point.
 		# [JS equiv]  No built-in; the formula above is the standard reflection.
 		_velocity = _velocity.bounce(collision.get_normal())
+
+		# Apply a small random rotation to prevent perfectly predictable bounce patterns.
+		# randf_range(-X, X) → float in [-X, X]; rotated(r) rotates the vector by r radians.
+		# [JS equiv]  velocity.rotate(jitter)  (use rotation matrix — no built-in)
+		var jitter: float = randf_range(-BOUNCE_JITTER_RAD, BOUNCE_JITTER_RAD)
+		_velocity = _velocity.rotated(jitter)
 
 	# Re-normalise then rescale: floating-point arithmetic causes tiny speed drift
 	# across hundreds of bounces. This keeps speed exactly at _current_speed always.

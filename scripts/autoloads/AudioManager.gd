@@ -41,6 +41,9 @@ func _ready() -> void:
 	_load_stream("brick_destroy", "res://assets/audio/sfx/brick_destroy.wav")
 	_load_stream("game_over",     "res://assets/audio/sfx/game_over.wav")
 	_load_stream("level_clear",   "res://assets/audio/sfx/level_clear.wav")
+	# T049 — new SFX placeholders (silent WAVs; replaced with real recordings in store phase).
+	_load_stream("brick_hit",  "res://assets/audio/sfx/brick_hit.wav")
+	_load_stream("paddle_hit", "res://assets/audio/sfx/paddle_hit.wav")
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
