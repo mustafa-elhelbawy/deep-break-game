@@ -27,6 +27,9 @@ const GRID_ORIGIN: Vector2 = Vector2(35.0, 60.0)
 signal all_cleared
 signal brick_destroyed(position: Vector2, tier: int)
 signal brick_hit(position: Vector2)
+## Relayed from Brick.powerup_dropped — received by Game.gd to spawn the token.
+## BrickGrid does not own token spawning; it only passes the signal through.
+signal powerup_dropped(type: String, pos: Vector2)
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -64,11 +67,19 @@ func spawn(descriptors: Array) -> void:
 		brick.hit_points = desc["hit_points"]
 		brick.tier       = desc["tier"]
 
+		# Apply power-up type from descriptor (T051 — "" means no drop).
+		# [JS equiv]  if (desc.powerupType) brick.setPowerupType(desc.powerupType)
+		if desc.get("powerup_type", "") != "":
+			brick.set_powerup_type(desc["powerup_type"])
+
 		# Connect brick signals to this grid's relay handlers.
 		# [GDScript] .connect(Callable) — registers a listener.
 		# [JS equiv]  brick.addEventListener('destroyed', _on_brick_destroyed)
 		brick.destroyed.connect(_on_brick_destroyed)
 		brick.hit.connect(_on_brick_hit)
+		# Relay power-up drop signal to Game.gd (ADR-002).
+		# [JS equiv]  brick.on('powerupDropped', (...a) => this.emit('powerupDropped', ...a))
+		brick.powerup_dropped.connect(_on_powerup_dropped)
 
 ## Returns the number of destructible bricks still alive.
 ## Used by _check_cleared() to determine the win condition.
@@ -91,6 +102,10 @@ func _on_brick_destroyed(pos: Vector2, tier: int) -> void:
 
 func _on_brick_hit(pos: Vector2) -> void:
 	emit_signal("brick_hit", pos)
+
+func _on_powerup_dropped(type: String, pos: Vector2) -> void:
+	# Pass through — BrickGrid does not own token spawning.
+	emit_signal("powerup_dropped", type, pos)
 
 func _check_cleared() -> void:
 	if get_brick_count() == 0:

@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/game/PowerUp.gd" id="script"]
+
+[sub_resource type="RectangleShape2D" id="shape"]
+size = Vector2(20, 20)
+
+[node name="PowerUp" type="Area2D"]
+collision_layer = 2
+collision_mask = 1
+monitorable = false
+script = ExtResource("script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("shape")
+
+[node name="Icon" type="ColorRect" parent="."]
+position = Vector2(-10, -10)
+size = Vector2(20, 20)
+color = Color(1, 1, 1, 1)

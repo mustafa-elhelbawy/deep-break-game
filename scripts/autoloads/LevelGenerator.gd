@@ -1,11 +1,13 @@
 # LevelGenerator.gd
-# Autoload singleton — pure function: (seed, level) → Array[Dictionary].
+# Autoload singleton — pure function: (seed, level) → Dictionary.
 # No scene dependencies. Same inputs always produce identical output (deterministic).
 #
-# Each returned dictionary has:
-#   "grid_pos"   : Vector2i  — column (x) and row (y) in the grid
-#   "hit_points" : int       — 1–3 for destructible; 0 for indestructible
-#   "tier"       : int       — 0–3, maps to atlas colour region
+# Return value: { "bricks": Array[Dictionary], "layout_flipped": bool }
+# Each brick dictionary has:
+#   "grid_pos"     : Vector2i  — column (x) and row (y) in the grid
+#   "hit_points"   : int       — 1–3 for destructible; 0 for indestructible
+#   "tier"         : int       — 0–3, maps to atlas colour region
+#   "powerup_type" : String    — "" = none; "W"/"S"/"M" = power-up type
 #
 # Difficulty by level:
 #   Levels  1–4:  5 rows,  max 1 HP, no indestructible
@@ -36,13 +38,26 @@ const DIFFICULTY_TABLE: Array = [
 	{ "threshold": 20, "max_rows": 12, "max_hp": 3, "indestructible_chance": 0.10 },
 ]
 
+# Power-up types available per level tier.
+# Each entry's "types" array accumulates — the last matching entry wins.
+# [JS equiv]  const POWERUP_TABLE = [{ threshold: 5, types: ['W'] }, ...]
+const POWERUP_TABLE: Array = [
+	{ "threshold": 5,  "types": ["W"] },
+	{ "threshold": 10, "types": ["W", "S"] },
+	{ "threshold": 20, "types": ["W", "S", "M"] },
+]
+
+# Probability that an eligible (destructible) brick carries a power-up.
+# [JS equiv]  const POWERUP_CHANCE = 0.12
+const POWERUP_CHANCE: float = 0.12
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-## Pure function — returns an Array of brick descriptor Dictionaries.
+## Pure function — returns a Dictionary: { "bricks": Array, "layout_flipped": bool }.
 ## Same seed + level always produces the same layout (deterministic).
 ## Called by Game.gd in _spawn_level() on every new level start.
-## [JS equiv]  generate(seed, level) { return descriptors }
-func generate(seed: int, level: int) -> Array:
+## [JS equiv]  generate(seed, level) { return { bricks: [...], layoutFlipped: false } }
+func generate(seed: int, level: int) -> Dictionary:
 	# Clamp seed to positive 32-bit range to avoid RandomNumberGenerator issues.
 	# abs() = Math.abs() in JS.
 	var safe_seed: int = abs(seed % 2147483647)
@@ -112,10 +127,41 @@ func generate(seed: int, level: int) -> Array:
 			# [JS equiv]  const tier = hp === 0 ? 3 : Math.max(0, hp - 1)
 			var tier: int = 3 if hp == 0 else clampi(hp - 1, 0, 2)
 
+			# Power-up assignment — runs AFTER all existing rng calls to preserve
+			# seed reproducibility for the gap/hp/indestructible draws above.
+			# Only destructible bricks (hp > 0) can carry a power-up.
+			# [JS equiv]  const puType = hp > 0 && rng.random() < POWERUP_CHANCE ? pickRandom(pool) : ''
+			var powerup_type: String = ""
+			if hp > 0:
+				var pool: Array = _get_available_powerups(level)
+				if pool.size() > 0 and rng.randf() < POWERUP_CHANCE:
+					# Pick a random index from the available pool.
+					# [JS equiv]  pool[Math.floor(rng.random() * pool.length)]
+					powerup_type = pool[rng.randi_range(0, pool.size() - 1)]
+
 			result.append({
-				"grid_pos":   Vector2i(col, row),
-				"hit_points": hp,
-				"tier":       tier,
+				"grid_pos":     Vector2i(col, row),
+				"hit_points":   hp,
+				"tier":         tier,
+				"powerup_type": powerup_type,
 			})
 
-	return result
+	# Wrap result in a top-level Dictionary so callers get metadata alongside bricks.
+	# layout_flipped is always false here — T060 adds real flip logic.
+	# [JS equiv]  return { bricks: result, layoutFlipped: false }
+	return {
+		"bricks":         result,
+		"layout_flipped": false,
+	}
+
+# ── Private helpers ────────────────────────────────────────────────────────────
+
+## Returns the array of power-up type strings available at this level.
+## Returns empty array if below the first threshold (level < 5).
+## [JS equiv]  _getAvailablePowerups(level) { return table.filter(...).at(-1)?.types ?? [] }
+func _get_available_powerups(level: int) -> Array:
+	var pool: Array = []
+	for entry in POWERUP_TABLE:
+		if level >= entry["threshold"]:
+			pool = entry["types"]
+	return pool

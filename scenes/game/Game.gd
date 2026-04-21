@@ -16,6 +16,11 @@
 # [JS equiv]  class Game extends HTMLElement { ... }
 extends Node2D
 
+# ── Scene resources ────────────────────────────────────────────────────────────
+# Power-up token scene — spawned here, not in Brick.gd, to keep visuals out of data nodes (ADR-002).
+# [JS equiv]  import PowerUpScene from './PowerUp.js'
+const PowerUpScene: PackedScene = preload("res://scenes/game/PowerUp.tscn")
+
 # ── Node references ────────────────────────────────────────────────────────────
 # [GDScript] @onready resolves paths once the scene tree is built.
 # $ is shorthand for get_node("NodeName").
@@ -61,6 +66,9 @@ func _ready() -> void:
 	# Wire brick_hit through BrickGrid relay — sound plays here, not in Brick.gd (T049/BUG-3).
 	# [JS equiv]  this._grid.addEventListener('brickHit', this._onBrickHit.bind(this))
 	_grid.brick_hit.connect(_on_brick_hit)
+	# Wire power-up relay — Game.gd spawns the token (ADR-002).
+	# [JS equiv]  this._grid.addEventListener('powerupDropped', this._onPowerupDropped.bind(this))
+	_grid.powerup_dropped.connect(_on_powerup_dropped)
 
 	# Connect Ball lost signal → life counter (T049 / ADR-006).
 	# Named method — cannot double-fire like an anonymous lambda when multi-ball is added.
@@ -148,10 +156,11 @@ func _launch_ball() -> void:
 	GameManager.set_playing()
 
 func _spawn_level() -> void:
-	# LevelGenerator is an autoload — call it directly like a global function.
-	# generate() is a pure function: same seed + level → identical layout every time.
-	# [JS equiv]  const descriptors = LevelGenerator.generate(GameManager.seed, GameManager.level)
-	var descriptors: Array = LevelGenerator.generate(GameManager.seed, GameManager.level)
+	# generate() now returns a Dictionary: { "bricks": Array, "layout_flipped": bool }
+	# layout_flipped is always false until T060 adds real flip logic.
+	# [JS equiv]  const { bricks, layoutFlipped } = LevelGenerator.generate(seed, level)
+	var level_data: Dictionary = LevelGenerator.generate(GameManager.seed, GameManager.level)
+	var descriptors: Array = level_data["bricks"]
 	_grid.spawn(descriptors)
 
 # ── BrickGrid signal handlers ──────────────────────────────────────────────────
@@ -189,3 +198,28 @@ func _on_ball_lost() -> void:
 	if _ball_count <= 0:
 		_ball_count = 1
 		GameManager.lose_life()
+
+# ── Power-up handling ──────────────────────────────────────────────────────────
+
+## Called by BrickGrid relay when a brick with a power-up is destroyed.
+## Spawns the falling token at the brick's world position.
+## [JS equiv]  _onPowerupDropped(type, pos) { const token = new PowerUpToken(); ... }
+func _on_powerup_dropped(type: String, pos: Vector2) -> void:
+	var token: Area2D = PowerUpScene.instantiate()
+	add_child(token)
+	# Place at brick's world position — token then falls under its own _physics_process.
+	token.global_position = pos
+	token.setup(type)
+	# Connect catch signal → effect handler (T053–T055 implement effects).
+	# [JS equiv]  token.addEventListener('caught', type => this._onPowerupCaught(type))
+	token.caught.connect(_on_powerup_caught)
+
+## Called when the paddle catches a falling power-up token.
+## type: "W" (Wide), "S" (Slow), "M" (Multi-Ball)
+## Effects are applied in T053–T055. This stub prevents errors until then.
+func _on_powerup_caught(type: String) -> void:
+	# [GDScript] Print for verification during development — remove after T056.
+	print("[PowerUp] caught: ", type)
+	# TODO T053: _activate_wide() when type == "W"
+	# TODO T054: _activate_slow() when type == "S"
+	# TODO T055: _activate_multiball() when type == "M"

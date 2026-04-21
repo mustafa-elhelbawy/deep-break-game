@@ -27,6 +27,17 @@ const TIER_REGIONS: Array = [
 # [JS equiv]  this.dispatchEvent(new CustomEvent('destroyed', { detail: { position, tier } }))
 signal destroyed(position: Vector2, tier: int)
 signal hit(position: Vector2)
+## Emitted on destroy when this brick carries a power-up (ADR-002).
+## BrickGrid relays this to Game.gd, which spawns the visual token.
+## Brick does NOT preload or instantiate PowerUp.tscn — it just announces the drop.
+## [JS equiv]  this.emit('powerupDropped', type, position)
+signal powerup_dropped(type: String, pos: Vector2)
+
+# ── State ──────────────────────────────────────────────────────────────────────
+# Power-up type this brick drops on destroy. "" = no drop.
+# Set by BrickGrid via set_powerup_type() after instantiation.
+# [JS equiv]  #powerupType = ''  (private class field)
+var _powerup_type: String = ""
 
 # ── Cached node reference ──────────────────────────────────────────────────────
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -45,6 +56,11 @@ func _apply_tier_visual() -> void:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+## Assign a power-up type. Called by BrickGrid after instantiation.
+## type: "W", "S", "M", or "" for no drop.
+func set_powerup_type(type: String) -> void:
+	_powerup_type = type
+
 ## Called by Ball.gd on collision (via is_in_group("bricks") check).
 func take_hit() -> void:
 	# hit_points == 0 is the indestructible sentinel.
@@ -58,6 +74,10 @@ func take_hit() -> void:
 	emit_signal("hit", global_position)
 
 	if hit_points == 0:
+		# Signal a power-up drop before freeing — BrickGrid relays to Game.gd (ADR-002).
+		# [JS equiv]  if (this._powerupType) this.emit('powerupDropped', this._powerupType, pos)
+		if _powerup_type != "":
+			emit_signal("powerup_dropped", _powerup_type, global_position)
 		# queue_free() removes the node from the scene tree next frame.
 		# [JS equiv]  this.element.remove()  (deferred one frame by the engine)
 		emit_signal("destroyed", global_position, tier)
