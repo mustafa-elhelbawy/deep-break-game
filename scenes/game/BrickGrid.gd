@@ -53,8 +53,9 @@ func spawn(descriptors: Array, flipped: bool = false) -> void:
 	for child in get_children():
 		child.queue_free()
 
-	# Phase 2 fallback: if LevelGenerator returns empty, use a simple test layout.
-	# Phase 3 replaces this when LevelGenerator.generate() is fully implemented.
+	# Fallback: if LevelGenerator returns empty, use a minimal test layout.
+	# This guards against edge cases during development; LevelGenerator always
+	# returns a non-empty array in practice.
 	var layout: Array = descriptors
 	if layout.is_empty():
 		layout = _fallback_layout()
@@ -159,11 +160,10 @@ func _check_cleared() -> void:
 	if get_brick_count() == 0:
 		emit_signal("all_cleared")
 
-# ── Phase 2 fallback layout ────────────────────────────────────────────────────
+# ── Fallback layout ────────────────────────────────────────────────────────────
 
 func _fallback_layout() -> Array:
-	# Simple 5-row × 7-col grid, all tier 0, 1 HP each.
-	# Replaced by LevelGenerator.generate() data in Phase 3.
+	# Minimal 5-row × 7-col grid used only when LevelGenerator returns empty.
 	var result: Array = []
 	for row in range(5):
 		for col in range(7):
