@@ -27,6 +27,7 @@ signal lost
 # [JS equiv]  const BASE_SPEED = 400;  let _currentSpeed = 400;
 const BASE_SPEED: float = 400.0
 
+
 # Minimum absolute vertical speed enforced after every bounce.
 # Prevents the ball from travelling nearly horizontally, which causes it to
 # bounce left–right many times without reaching the bricks or paddle.
@@ -174,12 +175,10 @@ func _move_and_reflect(delta: float) -> void:
 
 	var collider: Object = collision.get_collider()
 
-	# ── Brick hit (Phase 2 adds bricks; in Phase 1 this branch never fires) ──
+	# ── Brick hit ──────────────────────────────────────────────────────────────
 	# [GDScript] is_in_group() checks group membership set in the Godot editor.
 	# [JS equiv]  collider.classList.contains('bricks')
 	if collider.is_in_group("bricks"):
-		# take_hit() is defined in Brick.gd (Phase 2). Safe to call here because
-		# is_in_group("bricks") will never be true until Phase 2 adds bricks.
 		collider.take_hit()
 
 	# ── Reflect or deflect based on what was hit ──────────────────────────────

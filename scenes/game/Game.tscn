@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/Game.gd" id="script"]
 [ext_resource type="PackedScene" path="res://scenes/game/Walls.tscn" id="walls"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="gameover"]
 [ext_resource type="PackedScene" path="res://scenes/ui/LevelClear.tscn" id="levelclear"]
+[ext_resource type="PackedScene" path="res://scenes/game/FlipBanner.tscn" id="flipbanner"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -53,3 +54,5 @@ environment = SubResource("env")
 [node name="GameOver" parent="." instance=ExtResource("gameover")]
 
 [node name="LevelClear" parent="." instance=ExtResource("levelclear")]
+
+[node name="FlipBanner" parent="." instance=ExtResource("flipbanner")]

@@ -1,15 +1,13 @@
 # Game.gd
-# Root controller for a play session — Phase 2 full implementation.
+# Root controller for a play session.
 #
 # Responsibilities:
 #   - Reacts to GameManager state transitions
 #   - Spawns bricks via BrickGrid
 #   - Wires Ball lost signal → GameManager.lose_life()
 #   - Wires BrickGrid signals → score + juice
-#   - Shows/hides GameOver and LevelClear overlays
-#   - Applies flip mode (T060-T063): repositions paddle, toggles walls, propagates to Ball/Paddle
-#
-# Phase 1 was: "tap to launch, ball bounces". This replaces that stub entirely.
+#   - Shows/hides GameOver, LevelClear, and FlipBanner overlays
+#   - Applies flip mode: repositions paddle, toggles walls, propagates to Ball/Paddle
 #
 # [GDScript] 'extends Node2D' — root of the play scene.
 # [JS equiv]  class Game extends HTMLElement { ... }
@@ -38,6 +36,8 @@ const BallScene: PackedScene = preload("res://scenes/game/Ball.tscn")
 # [JS equiv]  this._wallTop = document.getElementById('wall-top')
 @onready var _wall_top: StaticBody2D    = $Walls/WallTop
 @onready var _wall_bottom: StaticBody2D = $Walls/WallBottom
+# Flip banner — shown briefly when a flipped level starts (T064).
+@onready var _flip_banner: CanvasLayer  = $FlipBanner
 
 # ── State ──────────────────────────────────────────────────────────────────────
 # Tracks the state we came FROM so WAITING knows whether to re-spawn bricks.
@@ -68,8 +68,7 @@ var _flipped: bool = false
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Give JuiceManager the camera reference (Phase 4 uses it for screen shake).
-	# No-op in Phase 2 — stub already accepts the call safely.
+	# Give JuiceManager the camera reference for screen shake.
 	JuiceManager.register_camera(_camera)
 
 	# Connect GameManager state machine to this scene.
@@ -340,10 +339,6 @@ func _on_extra_ball_lost(ball: CharacterBody2D) -> void:
 	_extra_balls.erase(ball)
 	_on_ball_lost()
 
-## Returns active extra balls — used by _activate_slow / _revert_slow.
-func _get_extra_balls() -> Array:
-	return _extra_balls
-
 # ── Flip mode (T063) ───────────────────────────────────────────────────────────
 
 ## Configures the scene for the current level's orientation.
@@ -370,6 +365,11 @@ func _apply_flip(flipped: bool) -> void:
 	# Propagate flip to Ball and Paddle so each system reconfigures its own logic.
 	_paddle.set_flipped(flipped)
 	_ball.set_flipped(flipped)
+
+	# Show the banner only when the level actually is flipped.
+	# [JS equiv]  if (flipped) this._flipBanner.show()
+	if flipped:
+		_flip_banner.show_banner()
 
 # ── Mobile brick wiring (T059/T063) ───────────────────────────────────────────
 
