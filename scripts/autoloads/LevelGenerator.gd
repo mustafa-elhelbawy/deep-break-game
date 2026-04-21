@@ -4,10 +4,11 @@
 #
 # Return value: { "bricks": Array[Dictionary], "layout_flipped": bool }
 # Each brick dictionary has:
-#   "grid_pos"     : Vector2i  — column (x) and row (y) in the grid
-#   "hit_points"   : int       — 1–3 for destructible; 0 for indestructible
-#   "tier"         : int       — 0–3, maps to atlas colour region
-#   "powerup_type" : String    — "" = none; "W"/"S"/"M" = power-up type
+#   "grid_pos"       : Vector2i  — column (x) and row (y) in the grid
+#   "hit_points"     : int       — 1–3 for destructible; 0 for indestructible
+#   "tier"           : int       — 0–3, maps to atlas colour region
+#   "powerup_type"   : String    — "" = none; "W"/"S"/"M" = power-up type
+#   "collapse_speed" : float     — 0.0 = static; > 0 = mobile brick drift px/s
 #
 # Difficulty by level:
 #   Levels  1–4:  5 rows,  max 1 HP, no indestructible
@@ -51,6 +52,15 @@ const POWERUP_TABLE: Array = [
 # [JS equiv]  const POWERUP_CHANCE = 0.12
 const POWERUP_CHANCE: float = 0.12
 
+# ── Mobile brick table (T058) ──────────────────────────────────────────────────
+# Determines what fraction of bricks collapse downward and how fast.
+# RNG calls for collapse happen AFTER powerup calls to preserve seed order.
+# [JS equiv]  const MOBILE_TABLE = [{ threshold: 10, chance: 0.15, speed_min: 30, speed_max: 50 }, ...]
+const MOBILE_TABLE: Array = [
+	{ "threshold": 10, "chance": 0.15, "speed_min": 30.0, "speed_max": 50.0 },
+	{ "threshold": 20, "chance": 0.20, "speed_min": 50.0, "speed_max": 90.0 },
+]
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 ## Pure function — returns a Dictionary: { "bricks": Array, "layout_flipped": bool }.
@@ -91,6 +101,10 @@ func generate(seed: int, level: int) -> Dictionary:
 		diff["max_rows"]
 	)
 
+	# ── Resolve mobile config once for the whole level ─────────────────────────
+	# [JS equiv]  const mobileCfg = this._getMobileConfig(level)
+	var mobile_cfg: Dictionary = _get_mobile_config(level)
+
 	# ── Build descriptor array ─────────────────────────────────────────────────
 	var result: Array = []
 
@@ -127,8 +141,8 @@ func generate(seed: int, level: int) -> Dictionary:
 			# [JS equiv]  const tier = hp === 0 ? 3 : Math.max(0, hp - 1)
 			var tier: int = 3 if hp == 0 else clampi(hp - 1, 0, 2)
 
-			# Power-up assignment — runs AFTER all existing rng calls to preserve
-			# seed reproducibility for the gap/hp/indestructible draws above.
+			# Power-up assignment — runs AFTER gap/hp/indestructible calls to preserve
+			# seed reproducibility for those draws.
 			# Only destructible bricks (hp > 0) can carry a power-up.
 			# [JS equiv]  const puType = hp > 0 && rng.random() < POWERUP_CHANCE ? pickRandom(pool) : ''
 			var powerup_type: String = ""
@@ -139,11 +153,28 @@ func generate(seed: int, level: int) -> Dictionary:
 					# [JS equiv]  pool[Math.floor(rng.random() * pool.length)]
 					powerup_type = pool[rng.randi_range(0, pool.size() - 1)]
 
+			# Mobile (collapse) speed — appended AFTER powerup calls to preserve order.
+			# 0.0 = static brick; > 0 = drifts downward at this speed (px/s).
+			# Indestructible bricks are never mobile (hp == 0 guard).
+			# [JS equiv]  const collapseSpeed = mobileCfg && hp > 0 && rng.random() < mobileCfg.chance ? rng.randomRange(min, max) : 0
+			var collapse_speed: float = 0.0
+			if not mobile_cfg.is_empty() and hp > 0:
+				if rng.randf() < mobile_cfg["chance"]:
+					collapse_speed = rng.randf_range(
+						mobile_cfg["speed_min"],
+						mobile_cfg["speed_max"]
+					)
+				else:
+					# Consume the speed draw even when not mobile — preserves RNG order
+					# so adding/removing mobile config does not shift downstream draws.
+					rng.randf_range(mobile_cfg["speed_min"], mobile_cfg["speed_max"])
+
 			result.append({
-				"grid_pos":     Vector2i(col, row),
-				"hit_points":   hp,
-				"tier":         tier,
-				"powerup_type": powerup_type,
+				"grid_pos":       Vector2i(col, row),
+				"hit_points":     hp,
+				"tier":           tier,
+				"powerup_type":   powerup_type,
+				"collapse_speed": collapse_speed,
 			})
 
 	# Wrap result in a top-level Dictionary so callers get metadata alongside bricks.
@@ -165,3 +196,13 @@ func _get_available_powerups(level: int) -> Array:
 		if level >= entry["threshold"]:
 			pool = entry["types"]
 	return pool
+
+## Returns the mobile-brick config active for this level, or empty dict if none.
+## An empty dict means no mobile bricks for levels below threshold 10.
+## [JS equiv]  _getMobileConfig(level) { return MOBILE_TABLE.filter(e => level >= e.threshold).at(-1) ?? {} }
+func _get_mobile_config(level: int) -> Dictionary:
+	var cfg: Dictionary = {}
+	for entry in MOBILE_TABLE:
+		if level >= entry["threshold"]:
+			cfg = entry
+	return cfg

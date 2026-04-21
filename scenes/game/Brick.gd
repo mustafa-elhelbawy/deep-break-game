@@ -2,6 +2,10 @@
 # A single destructible (or indestructible) brick.
 # Owned by BrickGrid. Ball.gd calls take_hit() on collision.
 #
+# Mobile bricks (T057): set_mobile(speed) makes the brick drift downward.
+# If it reaches paddle_y it fires reached_paddle (player loses a life — T059).
+# If it drifts off screen it fires drifted_off (counts as cleared for win check).
+#
 # [GDScript] 'extends StaticBody2D' — brick is a static physics body.
 # [JS equiv]  class Brick extends PhysicsObject { ... }
 extends StaticBody2D
@@ -32,12 +36,26 @@ signal hit(position: Vector2)
 ## Brick does NOT preload or instantiate PowerUp.tscn — it just announces the drop.
 ## [JS equiv]  this.emit('powerupDropped', type, position)
 signal powerup_dropped(type: String, pos: Vector2)
+## Emitted when a mobile brick drifts down to paddle_y — player loses a life (T059).
+## [JS equiv]  this.emit('reachedPaddle')
+signal reached_paddle
+## Emitted when a mobile brick exits the bottom of the screen — counts as cleared (BUG-2 fix).
+## [JS equiv]  this.emit('driftedOff')
+signal drifted_off
 
 # ── State ──────────────────────────────────────────────────────────────────────
 # Power-up type this brick drops on destroy. "" = no drop.
 # Set by BrickGrid via set_powerup_type() after instantiation.
 # [JS equiv]  #powerupType = ''  (private class field)
 var _powerup_type: String = ""
+
+# Mobile-brick state (T057). _is_mobile = false for all normal bricks.
+# _collapse_speed: drift speed in px/s (set by set_mobile()).
+# _paddle_y: the Y threshold at which reached_paddle fires (set by set_paddle_y()).
+# [JS equiv]  #isMobile = false; #collapseSpeed = 0; #paddleY = 700
+var _is_mobile: bool        = false
+var _collapse_speed: float  = 0.0
+var _paddle_y: float        = 700.0
 
 # ── Cached node reference ──────────────────────────────────────────────────────
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -54,12 +72,60 @@ func _apply_tier_visual() -> void:
 	var safe_tier: int = clampi(tier, 0, TIER_REGIONS.size() - 1)
 	_sprite.region_rect = TIER_REGIONS[safe_tier]
 
+# ── Physics loop (mobile bricks only) ─────────────────────────────────────────
+
+## Runs every physics tick only when this brick is mobile.
+## Moves the brick downward at _collapse_speed px/s and checks exit conditions.
+## [JS equiv]  // called inside requestAnimationFrame at 60 Hz
+func _physics_process(delta: float) -> void:
+	if not _is_mobile:
+		return
+
+	# Drift downward — StaticBody2D does not use velocity, so mutate position directly.
+	# ADR-003: direct position.y mutation is correct for StaticBody2D ≤ 90 px/s.
+	# [JS equiv]  this.y += this._collapseSpeed * delta
+	position.y += _collapse_speed * delta
+
+	# Reached paddle zone — player takes damage.
+	# [JS equiv]  if (this.y >= this._paddleY) { this.emit('reachedPaddle'); this.remove() }
+	if position.y >= _paddle_y:
+		emit_signal("reached_paddle")
+		queue_free()
+		return
+
+	# Drifted off the bottom of the screen — treat as destroyed for win-condition.
+	# 20 px grace matches the ball lost threshold in Ball.gd.
+	# [JS equiv]  const screenH = window.innerHeight
+	var screen_h: float = get_viewport().get_visible_rect().size.y
+	if position.y > screen_h + 20.0:
+		emit_signal("drifted_off")
+		queue_free()
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 ## Assign a power-up type. Called by BrickGrid after instantiation.
 ## type: "W", "S", "M", or "" for no drop.
 func set_powerup_type(type: String) -> void:
 	_powerup_type = type
+
+## Activate mobile-brick mode. The brick will drift downward at speed px/s.
+## Applies a red tint to give players a visual warning.
+## Called by BrickGrid in spawn() when collapse_speed > 0.
+## [JS equiv]  setMobile(speed) { this._isMobile = true; this.element.classList.add('mobile') }
+func set_mobile(speed: float) -> void:
+	_is_mobile = true
+	_collapse_speed = speed
+	# Red tint: modulate multiplies the sprite's colour (1,0.4,0.4,1 = reddish).
+	# Full white modulate (1,1,1,1) = no tint.
+	# [JS equiv]  this.element.style.filter = 'hue-rotate(0deg) saturate(2)'
+	_sprite.modulate = Color(1.0, 0.4, 0.4, 1.0)
+
+## Sets the Y threshold at which reached_paddle fires.
+## Injected by Game.gd in _wire_mobile_bricks() with the real paddle Y position.
+## Default is 700 px (placeholder until paddle position is known).
+## [JS equiv]  setPaddleY(y) { this._paddleY = y }
+func set_paddle_y(y: float) -> void:
+	_paddle_y = y
 
 ## Called by Ball.gd on collision (via is_in_group("bricks") check).
 func take_hit() -> void:

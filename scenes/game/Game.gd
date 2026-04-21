@@ -180,6 +180,9 @@ func _spawn_level() -> void:
 	var level_data: Dictionary = LevelGenerator.generate(GameManager.seed, GameManager.level)
 	var descriptors: Array = level_data["bricks"]
 	_grid.spawn(descriptors)
+	# Inject real paddle Y and connect reached_paddle after bricks are in the tree.
+	# BrickGrid.spawn() used a placeholder 700 px — overwrite with actual paddle position.
+	_wire_mobile_bricks()
 
 # ── BrickGrid signal handlers ──────────────────────────────────────────────────
 
@@ -240,6 +243,7 @@ func _on_powerup_caught(type: String) -> void:
 			# Expand paddle to 1.8× width for 10 s. Catching again resets timer.
 			# [JS equiv]  this._paddle.activateWide()
 			_paddle.activate_wide()
+			_hud.show_powerup("W", Paddle.WIDE_DURATION)
 		"S":
 			# Slow all active balls to 55% speed for 10 s. Catching again resets timer.
 			_activate_slow()
@@ -265,6 +269,8 @@ func _activate_slow() -> void:
 
 	_slow_timer = get_tree().create_timer(SLOW_DURATION)
 	_slow_timer.timeout.connect(_revert_slow)
+	# Show HUD countdown bar for slow effect.
+	_hud.show_powerup("S", SLOW_DURATION)
 
 func _revert_slow() -> void:
 	_ball.revert_slow()
@@ -272,6 +278,7 @@ func _revert_slow() -> void:
 		if is_instance_valid(b):
 			b.revert_slow()
 	_slow_timer = null
+	_hud.hide_powerup()
 
 # ── Multi-ball effect (T055) ───────────────────────────────────────────────────
 
@@ -301,6 +308,9 @@ func _activate_multiball() -> void:
 	# when the level ends, so disconnection on scene teardown is not a concern.
 	# [JS equiv]  extra.addEventListener('lost', () => this._onExtraBallLost(extra))
 	extra.lost.connect(func(): _on_extra_ball_lost(extra))
+	# Show HUD indicator for multi-ball — no countdown bar (M has no timer).
+	# Pass 0.0 as duration so the bar doesn't shrink during gameplay.
+	_hud.show_powerup("M", 0.0)
 
 func _on_extra_ball_lost(ball: CharacterBody2D) -> void:
 	_extra_balls.erase(ball)
@@ -309,6 +319,32 @@ func _on_extra_ball_lost(ball: CharacterBody2D) -> void:
 ## Returns active extra balls — used by _activate_slow / _revert_slow.
 func _get_extra_balls() -> Array:
 	return _extra_balls
+
+# ── Mobile brick wiring (T059) ─────────────────────────────────────────────────
+
+## Injects the real paddle Y threshold into every mobile brick and connects
+## reached_paddle → _on_mobile_brick_hit.
+## Called from _spawn_level() immediately after _grid.spawn().
+## [JS equiv]  _wireMobileBricks() { grid.getMobileBricks().forEach(b => { b.paddleY = paddle.y; b.on('reachedPaddle', handler) }) }
+func _wire_mobile_bricks() -> void:
+	# Use the paddle's current global Y as the damage threshold.
+	# Bricks reaching this Y mean they've hit the paddle zone.
+	var paddle_y: float = _paddle.global_position.y
+	for brick in _grid.get_mobile_bricks():
+		brick.set_paddle_y(paddle_y)
+		# Connect reached_paddle — fires when the brick drifts into the paddle zone.
+		# Lambda captures 'brick' by reference — safe because brick is freed after signal.
+		# [JS equiv]  brick.on('reachedPaddle', () => this._onMobileBrickHit())
+		brick.reached_paddle.connect(_on_mobile_brick_hit)
+
+## Called when a mobile brick reaches the paddle zone (T059).
+## Flashes the screen red, shakes the camera, and deducts a life.
+## [JS equiv]  _onMobileBrickHit() { juiceManager.flash('red'); juiceManager.shake(); gameManager.loseLife() }
+func _on_mobile_brick_hit() -> void:
+	# Dark red flash: Color(0.6, 0, 0, 0.5) — semi-transparent red overlay.
+	JuiceManager.flash(Color(0.6, 0.0, 0.0, 0.5), 0.4)
+	JuiceManager.shake(0.5, 0.15)
+	GameManager.lose_life()
 
 ## Frees all extra balls and resets _ball_count to 1.
 ## Called on WAITING (non-DEAD), GAME_OVER, and LEVEL_CLEAR transitions.
@@ -319,3 +355,5 @@ func _clear_extra_balls() -> void:
 	_extra_balls.clear()
 	# [JS equiv]  this._ballCount = 1
 	_ball_count = 1
+	# Hide power-up indicator when transitioning between levels.
+	_hud.hide_powerup()
