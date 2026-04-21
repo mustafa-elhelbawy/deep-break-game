@@ -58,6 +58,9 @@ func _ready() -> void:
 	# Connect BrickGrid aggregate signals.
 	_grid.all_cleared.connect(_on_all_cleared)
 	_grid.brick_destroyed.connect(_on_brick_destroyed)
+	# Wire brick_hit through BrickGrid relay — sound plays here, not in Brick.gd (T049/BUG-3).
+	# [JS equiv]  this._grid.addEventListener('brickHit', this._onBrickHit.bind(this))
+	_grid.brick_hit.connect(_on_brick_hit)
 
 	# Connect Ball lost signal → life counter (T049 / ADR-006).
 	# Named method — cannot double-fire like an anonymous lambda when multi-ball is added.
@@ -155,6 +158,11 @@ func _spawn_level() -> void:
 
 func _on_all_cleared() -> void:
 	GameManager.level_clear()
+
+## Called when a brick survives a hit (HP > 0 after decrement).
+## Pos is the world position — available for future particle effects.
+func _on_brick_hit(_pos: Vector2) -> void:
+	AudioManager.play("brick_hit")
 
 func _on_brick_destroyed(pos: Vector2, tier: int) -> void:
 	# Score: 10 × (tier + 1). Tier 0 = 10 pts, tier 3 = 40 pts.
