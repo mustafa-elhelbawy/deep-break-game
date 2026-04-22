@@ -19,14 +19,19 @@ func _ready() -> void:
 ## Called by Game.gd._apply_flip() when layout_flipped = true.
 ## [JS equiv]  showBanner() { this.style.display = 'flex'; setTimeout(hide, 2200) }
 func show_banner() -> void:
-	modulate.a = 0.0
+	_set_children_alpha(0.0)
 	show()
 
 	# Chain: fade in (0.25 s) → hold (1.5 s) → fade out (0.45 s) → hide.
-	# Tween.TRANS_SINE gives a smooth ease rather than linear opacity.
+	# Uses tween_method because CanvasLayer has no modulate property —
+	# we drive the children's modulate.a instead.
 	# [JS equiv]  element.animate([{opacity:0},{opacity:1},{opacity:1},{opacity:0}], { duration: 2200 })
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
+	tween.tween_method(_set_children_alpha, 0.0, 1.0, 0.25).set_trans(Tween.TRANS_SINE)
 	tween.tween_interval(1.5)
-	tween.tween_property(self, "modulate:a", 0.0, 0.45).set_trans(Tween.TRANS_SINE)
+	tween.tween_method(_set_children_alpha, 1.0, 0.0, 0.45).set_trans(Tween.TRANS_SINE)
 	tween.tween_callback(hide)
+
+func _set_children_alpha(alpha: float) -> void:
+	for child in get_children():
+		child.modulate.a = alpha

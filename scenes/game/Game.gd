@@ -25,19 +25,19 @@ const BallScene: PackedScene = preload("res://scenes/game/Ball.tscn")
 # [GDScript] @onready resolves paths once the scene tree is built.
 # $ is shorthand for get_node("NodeName").
 # [JS equiv]  this._ball = document.getElementById('ball')
-@onready var _ball: CharacterBody2D    = $Ball
-@onready var _paddle: AnimatableBody2D = $Paddle
-@onready var _camera: Camera2D         = $Camera2D
-@onready var _grid: Node2D             = $BrickGrid
-@onready var _hud: CanvasLayer         = $HUD
-@onready var _game_over: CanvasLayer   = $GameOver
-@onready var _level_clear: CanvasLayer = $LevelClear
+@onready var _ball              = $Ball
+@onready var _paddle            = $Paddle
+@onready var _camera: Camera2D  = $Camera2D
+@onready var _grid              = $BrickGrid
+@onready var _hud               = $HUD
+@onready var _game_over         = $GameOver
+@onready var _level_clear       = $LevelClear
 # Wall nodes for flip mode: WallTop = active in normal, WallBottom = active when flipped (T063).
 # [JS equiv]  this._wallTop = document.getElementById('wall-top')
 @onready var _wall_top: StaticBody2D    = $Walls/WallTop
 @onready var _wall_bottom: StaticBody2D = $Walls/WallBottom
 # Flip banner — shown briefly when a flipped level starts (T064).
-@onready var _flip_banner: CanvasLayer  = $FlipBanner
+@onready var _flip_banner  = $FlipBanner
 
 # ── State ──────────────────────────────────────────────────────────────────────
 # Tracks the state we came FROM so WAITING knows whether to re-spawn bricks.
@@ -262,7 +262,7 @@ func _on_powerup_caught(type: String) -> void:
 			# Expand paddle to 1.8× width for 10 s. Catching again resets timer.
 			# [JS equiv]  this._paddle.activateWide()
 			_paddle.activate_wide()
-			_hud.show_powerup("W", Paddle.WIDE_DURATION)
+			_hud.show_powerup("W", _paddle.WIDE_DURATION)
 		"S":
 			# Slow all active balls to 55% speed for 10 s. Catching again resets timer.
 			_activate_slow()
