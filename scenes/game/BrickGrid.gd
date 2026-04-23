@@ -67,6 +67,14 @@ func spawn(descriptors: Array, flipped: bool = false) -> void:
 
 	for desc in layout:
 		var brick: StaticBody2D = BrickScene.instantiate()
+
+		# Set tier and HP BEFORE add_child() so _ready() → _apply_tier_visual()
+		# picks up the correct tier for the atlas colour region.
+		# [GDScript] @export vars are plain members — safe to set before entering the tree.
+		# [JS equiv]  brick.hitPoints = desc.hitPoints; brick.tier = desc.tier
+		brick.hit_points = desc["hit_points"]
+		brick.tier       = desc["tier"]
+
 		add_child(brick)
 
 		var col: int = desc["grid_pos"].x
@@ -83,8 +91,6 @@ func spawn(descriptors: Array, flipped: bool = false) -> void:
 			brick_y = GRID_ORIGIN.y + row * (BRICK_H + PADDING_Y)
 
 		brick.global_position = Vector2(brick_x, brick_y)
-		brick.hit_points = desc["hit_points"]
-		brick.tier       = desc["tier"]
 
 		# Apply power-up type from descriptor (T051 — "" means no drop).
 		# [JS equiv]  if (desc.powerupType) brick.setPowerupType(desc.powerupType)
