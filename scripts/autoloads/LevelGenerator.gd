@@ -43,9 +43,7 @@ const DIFFICULTY_TABLE: Array = [
 # Each entry's "types" array accumulates — the last matching entry wins.
 # [JS equiv]  const POWERUP_TABLE = [{ threshold: 5, types: ['W'] }, ...]
 const POWERUP_TABLE: Array = [
-	{ "threshold": 5,  "types": ["W"] },
-	{ "threshold": 10, "types": ["W", "S"] },
-	{ "threshold": 20, "types": ["W", "S", "M"] },
+	{"threshold": 0, "types": ["W", "S", "M"]},
 ]
 
 # Probability that an eligible (destructible) brick carries a power-up.
