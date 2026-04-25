@@ -6,6 +6,13 @@
 [sub_resource type="RectangleShape2D" id="brick_shape"]
 size = Vector2(44, 18)
 
+[sub_resource type="StyleBoxFlat" id="dot_style"]
+bg_color = Color(1, 1, 1, 0.85)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
 [node name="Brick" type="StaticBody2D" unique_id=1249742811 groups=["bricks"]]
 script = ExtResource("script")
 
@@ -19,23 +26,23 @@ region_rect = Rect2(0, 36, 44, 18)
 
 [node name="HPDots" type="Node2D" parent="." unique_id=630449531]
 
-[node name="Dot1" type="ColorRect" parent="HPDots" unique_id=50347897]
-offset_left = -9.0
-offset_top = 3.0
-offset_right = -4.0
+[node name="Dot1" type="Panel" parent="HPDots" unique_id=50347897]
+offset_left = -11.0
+offset_top = 2.0
+offset_right = -5.0
 offset_bottom = 8.0
-color = Color(1, 1, 1, 0.85)
+theme_override_styles/panel = SubResource("dot_style")
 
-[node name="Dot2" type="ColorRect" parent="HPDots" unique_id=499790098]
-offset_left = -2.0
-offset_top = 3.0
+[node name="Dot2" type="Panel" parent="HPDots" unique_id=499790098]
+offset_left = -3.0
+offset_top = 2.0
 offset_right = 3.0
 offset_bottom = 8.0
-color = Color(1, 1, 1, 0.85)
+theme_override_styles/panel = SubResource("dot_style")
 
-[node name="Dot3" type="ColorRect" parent="HPDots" unique_id=103718918]
+[node name="Dot3" type="Panel" parent="HPDots" unique_id=103718918]
 offset_left = 5.0
-offset_top = 3.0
-offset_right = 10.0
+offset_top = 2.0
+offset_right = 11.0
 offset_bottom = 8.0
-color = Color(1, 1, 1, 0.85)
+theme_override_styles/panel = SubResource("dot_style")

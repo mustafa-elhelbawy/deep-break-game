@@ -79,7 +79,7 @@ func _update_hp_dots() -> void:
 	# Each dot represents one hit needed. Show N dots for N HP.
 	# Indestructible bricks (hp == 0) and 1-HP bricks show no dots.
 	for i in range(_hp_dots.get_child_count()):
-		var dot: ColorRect = _hp_dots.get_child(i)
+		var dot: Panel = _hp_dots.get_child(i)
 		dot.visible = i < hit_points and hit_points > 1
 
 # ── Physics loop (mobile bricks only) ─────────────────────────────────────────
