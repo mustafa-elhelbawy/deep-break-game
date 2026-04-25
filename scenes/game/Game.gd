@@ -289,7 +289,8 @@ func _activate_multiball() -> void:
 		return
 
 	var extra: CharacterBody2D = BallScene.instantiate()
-	add_child(extra)
+	add_child.call_deferred(extra)
+	await get_tree().process_frame
 	# Offset slightly so the two balls don't start at the identical position.
 	extra.global_position = _ball.global_position + Vector2(20.0, 0.0)
 	extra.set_speed_for_level(GameManager.level)
