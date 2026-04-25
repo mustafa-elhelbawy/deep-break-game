@@ -1,20 +1,41 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://rjl1j5iv4be"]
 
-[ext_resource type="Script" path="res://scenes/game/Brick.gd" id="script"]
-[ext_resource type="Texture2D" path="res://assets/textures/atlas.png" id="atlas"]
+[ext_resource type="Texture2D" uid="uid://b4ua2a5e4xenw" path="res://assets/textures/atlas.png" id="atlas"]
+[ext_resource type="Script" uid="uid://c8xdr38yhhhy1" path="res://scenes/game/Brick.gd" id="script"]
 
 [sub_resource type="RectangleShape2D" id="brick_shape"]
 size = Vector2(44, 18)
 
-[node name="Brick" type="StaticBody2D" groups=["bricks"]]
-collision_layer = 1
-collision_mask = 1
+[node name="Brick" type="StaticBody2D" unique_id=1249742811 groups=["bricks"]]
 script = ExtResource("script")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1637293715]
 shape = SubResource("brick_shape")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=583160748]
 texture = ExtResource("atlas")
 region_enabled = true
 region_rect = Rect2(0, 36, 44, 18)
+
+[node name="HPDots" type="Node2D" parent="." unique_id=630449531]
+
+[node name="Dot1" type="ColorRect" parent="HPDots" unique_id=50347897]
+offset_left = -9.0
+offset_top = 3.0
+offset_right = -4.0
+offset_bottom = 8.0
+color = Color(1, 1, 1, 0.85)
+
+[node name="Dot2" type="ColorRect" parent="HPDots" unique_id=499790098]
+offset_left = -2.0
+offset_top = 3.0
+offset_right = 3.0
+offset_bottom = 8.0
+color = Color(1, 1, 1, 0.85)
+
+[node name="Dot3" type="ColorRect" parent="HPDots" unique_id=103718918]
+offset_left = 5.0
+offset_top = 3.0
+offset_right = 10.0
+offset_bottom = 8.0
+color = Color(1, 1, 1, 0.85)

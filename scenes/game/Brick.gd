@@ -57,20 +57,30 @@ var _is_mobile: bool           = false
 var _collapse_speed: float     = 0.0
 var _paddle_y: float           = 700.0
 
-# ── Cached node reference ──────────────────────────────────────────────────────
+# ── Cached node references ─────────────────────────────────────────────────────
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _hp_dots: Node2D = $HPDots
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	# Apply the correct atlas region for this brick's tier.
 	_apply_tier_visual()
+	# Show dot indicators for multi-hit bricks (2+ HP).
+	_update_hp_dots()
 
 func _apply_tier_visual() -> void:
 	# Clamp tier to valid index range.
 	# [JS equiv]  Math.max(0, Math.min(3, this.tier))
 	var safe_tier: int = clampi(tier, 0, TIER_REGIONS.size() - 1)
 	_sprite.region_rect = TIER_REGIONS[safe_tier]
+
+func _update_hp_dots() -> void:
+	# Each dot represents one hit needed. Show N dots for N HP.
+	# Indestructible bricks (hp == 0) and 1-HP bricks show no dots.
+	for i in range(_hp_dots.get_child_count()):
+		var dot: ColorRect = _hp_dots.get_child(i)
+		dot.visible = i < hit_points and hit_points > 1
 
 # ── Physics loop (mobile bricks only) ─────────────────────────────────────────
 
@@ -137,6 +147,7 @@ func take_hit() -> void:
 		return
 
 	hit_points -= 1
+	_update_hp_dots()
 	emit_signal("hit", global_position)
 
 	if hit_points == 0:
