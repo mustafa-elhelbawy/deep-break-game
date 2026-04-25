@@ -52,12 +52,10 @@ var _powerup_type: String = ""
 # Mobile-brick state (T057). _is_mobile = false for all normal bricks.
 # _collapse_speed: drift speed in px/s (set by set_mobile()).
 # _paddle_y: the Y threshold at which reached_paddle fires (set by set_paddle_y()).
-# _mobile_direction: +1.0 = drift downward (normal); -1.0 = drift upward (flipped).
-# [JS equiv]  #isMobile = false; #collapseSpeed = 0; #paddleY = 700; #mobileDir = 1
+# [JS equiv]  #isMobile = false; #collapseSpeed = 0; #paddleY = 700
 var _is_mobile: bool           = false
 var _collapse_speed: float     = 0.0
 var _paddle_y: float           = 700.0
-var _mobile_direction: float   = 1.0
 
 # ── Cached node reference ──────────────────────────────────────────────────────
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -83,30 +81,23 @@ func _physics_process(delta: float) -> void:
 	if not _is_mobile:
 		return
 
-	# Drift in _mobile_direction — +1 = downward (normal), -1 = upward (flipped).
+	# Drift downward at _collapse_speed px/s.
 	# ADR-003: direct position.y mutation is correct for StaticBody2D ≤ 90 px/s.
-	# [JS equiv]  this.y += this._collapseSpeed * this._mobileDirection * delta
-	position.y += _collapse_speed * _mobile_direction * delta
+	# [JS equiv]  this.y += this._collapseSpeed * delta
+	position.y += _collapse_speed * delta
 
-	# Reached paddle zone — fires when the brick crosses _paddle_y in the drift direction.
-	# Normal:  position.y >= _paddle_y (drifting down).
-	# Flipped: position.y <= _paddle_y (drifting up).
-	# [JS equiv]  const hitPaddle = dir > 0 ? y >= paddleY : y <= paddleY
-	var hit_paddle: bool = (_mobile_direction > 0.0 and position.y >= _paddle_y) \
-	                    or (_mobile_direction < 0.0 and position.y <= _paddle_y)
-	if hit_paddle:
+	# Reached paddle zone — fires when the brick crosses _paddle_y drifting down.
+	# [JS equiv]  const hitPaddle = y >= paddleY
+	if position.y >= _paddle_y:
 		emit_signal("reached_paddle")
 		queue_free()
 		return
 
-	# Drifted off-screen — treat as destroyed for win-condition (BUG-2 fix).
-	# Normal:  exits bottom (y > screen_h + 20).
-	# Flipped: exits top   (y < -20).
-	# [JS equiv]  const offScreen = dir > 0 ? y > screenH + 20 : y < -20
+	# Drifted off-screen — exits bottom (y > screen_h + 20).
+	# Treat as destroyed for win-condition (BUG-2 fix).
+	# [JS equiv]  const offScreen = y > screenH + 20
 	var screen_h: float = get_viewport().get_visible_rect().size.y
-	var off_screen: bool = (_mobile_direction > 0.0 and position.y > screen_h + 20.0) \
-	                    or (_mobile_direction < 0.0 and position.y < -20.0)
-	if off_screen:
+	if position.y > screen_h + 20.0:
 		emit_signal("drifted_off")
 		queue_free()
 
@@ -128,12 +119,6 @@ func set_mobile(speed: float) -> void:
 	# Full white modulate (1,1,1,1) = no tint.
 	# [JS equiv]  this.element.style.filter = 'hue-rotate(0deg) saturate(2)'
 	_sprite.modulate = Color(1.0, 0.4, 0.4, 1.0)
-
-## Sets drift direction for flipped mode. +1.0 = down (normal), -1.0 = up (flipped).
-## Called by Game.gd._wire_mobile_bricks() alongside set_paddle_y() (T063).
-## [JS equiv]  setMobileDirection(dir) { this._mobileDirection = dir }
-func set_mobile_direction(dir: float) -> void:
-	_mobile_direction = dir
 
 ## Sets the Y threshold at which reached_paddle fires.
 ## Injected by Game.gd in _wire_mobile_bricks() with the real paddle Y position.

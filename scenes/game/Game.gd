@@ -6,8 +6,7 @@
 #   - Spawns bricks via BrickGrid
 #   - Wires Ball lost signal → GameManager.lose_life()
 #   - Wires BrickGrid signals → score + juice
-#   - Shows/hides GameOver, LevelClear, and FlipBanner overlays
-#   - Applies flip mode: repositions paddle, toggles walls, propagates to Ball/Paddle
+#   - Shows/hides GameOver and LevelClear overlays
 #
 # [GDScript] 'extends Node2D' — root of the play scene.
 # [JS equiv]  class Game extends HTMLElement { ... }
@@ -32,12 +31,8 @@ const BallScene: PackedScene = preload("res://scenes/game/Ball.tscn")
 @onready var _hud               = $HUD
 @onready var _game_over         = $GameOver
 @onready var _level_clear       = $LevelClear
-# Wall nodes for flip mode: WallTop = active in normal, WallBottom = active when flipped (T063).
-# [JS equiv]  this._wallTop = document.getElementById('wall-top')
 @onready var _wall_top: StaticBody2D    = $Walls/WallTop
 @onready var _wall_bottom: StaticBody2D = $Walls/WallBottom
-# Flip banner — shown briefly when a flipped level starts (T064).
-@onready var _flip_banner  = $FlipBanner
 
 # ── State ──────────────────────────────────────────────────────────────────────
 # Tracks the state we came FROM so WAITING knows whether to re-spawn bricks.
@@ -59,11 +54,6 @@ var _extra_balls: Array[CharacterBody2D] = []
 # [JS equiv]  #slowTimer = null
 var _slow_timer: SceneTreeTimer = null
 const SLOW_DURATION: float = 10.0
-
-# Flip state for the current level (T063). Re-derived from LevelGenerator on every
-# new level — not stored in GameManager (ADR-004: flip is session-level, not game state).
-# [JS equiv]  #flipped = false
-var _flipped: bool = false
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -132,7 +122,7 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 				# Fresh level start — clean up any extra balls from previous level.
 				_clear_extra_balls()
 				_spawn_level()
-			# Park the ball on the paddle using the flip-aware helper.
+			# Park the ball on the paddle.
 			_place_ball_on_paddle()
 			_game_over.hide()
 			_level_clear.hide()
@@ -178,30 +168,21 @@ func _launch_ball() -> void:
 	# Level 1 = 432 px/s · level 10 = 720 px/s · capped at 800 px/s from level 13+.
 	# [JS equiv]  this._ball.setSpeedForLevel(GameManager.level)
 	_ball.set_speed_for_level(GameManager.level)
-	# In flipped mode ball launches downward (toward the bricks at the bottom).
-	# [JS equiv]  const dir = flipped ? { x: -0.3, y: 1.0 } : { x: -0.3, y: -1.0 }
-	var direction: Vector2 = Vector2(-0.3, 1.0) if _flipped else Vector2(-0.3, -1.0)
+	var direction: Vector2 = Vector2(-0.3, -1.0)
 	_ball.launch(direction)
 	GameManager.set_playing()
 
 func _spawn_level() -> void:
-	# generate() returns a Dictionary: { "bricks": Array, "layout_flipped": bool }
-	# [JS equiv]  const { bricks, layoutFlipped } = LevelGenerator.generate(seed, level)
-	var level_data: Dictionary = LevelGenerator.generate(GameManager.seed, GameManager.level)
-	var descriptors: Array = level_data["bricks"]
-	# Apply flip BEFORE spawning so BrickGrid positions bricks on the correct side,
-	# and Ball/Paddle are reconfigured before the ball is placed (ADR-004).
-	_apply_flip(level_data["layout_flipped"])
-	_grid.spawn(descriptors, _flipped)
-	# Inject real paddle Y and flip direction into every mobile brick (T059/T063).
+	var descriptors: Array = LevelGenerator.generate(GameManager.seed, GameManager.level)["bricks"]
+	_grid.spawn(descriptors)
+	# Inject real paddle Y into every mobile brick (T059).
 	_wire_mobile_bricks()
 
-## Stops the ball and places it on the paddle, accounting for flip mode (ADR-004).
-## Replaces direct reset_to_paddle() calls — offset is +30 when flipped, -30 when not.
-## [JS equiv]  _placeBallOnPaddle() { ball.park(paddle.pos + { x: 0, y: offset }) }
+## Stops the ball and places it on the paddle.
+## Replaces direct reset_to_paddle() calls.
+## [JS equiv]  _placeBallOnPaddle() { ball.park(paddle.pos + { x: 0, y: -30 }) }
 func _place_ball_on_paddle() -> void:
-	var offset_y: float = 30.0 if _flipped else -30.0
-	_ball.park(_paddle.global_position + Vector2(0.0, offset_y))
+	_ball.park(_paddle.global_position + Vector2(0.0, -30.0))
 
 # ── BrickGrid signal handlers ──────────────────────────────────────────────────
 
@@ -312,17 +293,13 @@ func _activate_multiball() -> void:
 	# Offset slightly so the two balls don't start at the identical position.
 	extra.global_position = _ball.global_position + Vector2(20.0, 0.0)
 	extra.set_speed_for_level(GameManager.level)
-	# Inherit flip state so the extra ball uses the correct lost edge.
-	# [JS equiv]  extra.setFlipped(this._flipped)
-	extra.set_flipped(_flipped)
 
 	# Inherit slow-mo if already active.
 	if _slow_timer != null and is_instance_valid(_slow_timer):
 		extra.activate_slow()
 
-	# Mirror launch direction: in flipped mode extra ball also goes downward.
-	# [JS equiv]  const dir = flipped ? { x: 0.3, y: 1.0 } : { x: 0.3, y: -1.0 }
-	var direction: Vector2 = Vector2(0.3, 1.0) if _flipped else Vector2(0.3, -1.0)
+	# Launch extra ball to the right.
+	var direction: Vector2 = Vector2(0.3, -1.0)
 	extra.launch(direction)
 
 	_extra_balls.append(extra)
@@ -339,52 +316,17 @@ func _on_extra_ball_lost(ball: CharacterBody2D) -> void:
 	_extra_balls.erase(ball)
 	_on_ball_lost()
 
-# ── Flip mode (T063) ───────────────────────────────────────────────────────────
-
-## Configures the scene for the current level's orientation.
-## Must be called BEFORE bricks are spawned and BEFORE the ball is placed (ADR-004).
-## flipped = false → normal (paddle at bottom, bricks at top)
-## flipped = true  → flipped (paddle at top, bricks at bottom)
-## [JS equiv]  _applyFlip(flipped) { ... }
-func _apply_flip(flipped: bool) -> void:
-	_flipped = flipped
-
-	# Toggle which wall boundary is solid.
-	# Normal:  WallTop = solid ceiling, WallBottom = open (ball falls off = lost).
-	# Flipped: WallTop = open (ball flies off = lost), WallBottom = solid floor.
-	# set_deferred() schedules the change for next idle frame — ball is not placed yet,
-	# so there is no race condition (ADR-004: wall toggle timing rationale).
-	# [JS equiv]  wallTop.disabled = flipped; wallBottom.disabled = !flipped
-	_wall_top.get_node("CollisionShape2D").set_deferred("disabled", flipped)
-	_wall_bottom.get_node("CollisionShape2D").set_deferred("disabled", not flipped)
-
-	# Reposition paddle: bottom in normal (y=710), top in flipped (y=70).
-	# [JS equiv]  paddle.y = flipped ? 70 : 710
-	_paddle.position.y = 70.0 if flipped else 710.0
-
-	# Propagate flip to Ball and Paddle so each system reconfigures its own logic.
-	_paddle.set_flipped(flipped)
-	_ball.set_flipped(flipped)
-
-	# Show the banner only when the level actually is flipped.
-	# [JS equiv]  if (flipped) this._flipBanner.show()
-	if flipped:
-		_flip_banner.show_banner()
-
-# ── Mobile brick wiring (T059/T063) ───────────────────────────────────────────
+# ── Mobile brick wiring (T059) ────────────────────────────────────────────────
 
 ## Injects the real paddle Y, drift direction, and reached_paddle handler into
 ## every mobile brick. Called from _spawn_level() after _grid.spawn().
 ## [JS equiv]  _wireMobileBricks() { grid.getMobileBricks().forEach(b => { ... }) }
 func _wire_mobile_bricks() -> void:
 	var paddle_y: float = _paddle.global_position.y
-	# Normal: bricks drift DOWN (+Y), triggered when y >= paddle_y.
-	# Flipped: bricks drift UP  (-Y), triggered when y <= paddle_y.
-	# [JS equiv]  const dir = flipped ? -1 : 1
-	var direction: float = -1.0 if _flipped else 1.0
+	# Bricks drift DOWN (+Y), triggered when y >= paddle_y.
 	for brick in _grid.get_mobile_bricks():
 		brick.set_paddle_y(paddle_y)
-		brick.set_mobile_direction(direction)
+		brick.set_mobile_direction(1.0)
 		# Connect reached_paddle — fires when the brick drifts into the paddle zone.
 		# [JS equiv]  brick.on('reachedPaddle', () => this._onMobileBrickHit())
 		brick.reached_paddle.connect(_on_mobile_brick_hit)

@@ -2,7 +2,7 @@
 # Autoload singleton — pure function: (seed, level) → Dictionary.
 # No scene dependencies. Same inputs always produce identical output (deterministic).
 #
-# Return value: { "bricks": Array[Dictionary], "layout_flipped": bool }
+# Return value: { "bricks": Array[Dictionary] }
 # Each brick dictionary has:
 #   "grid_pos"       : Vector2i  — column (x) and row (y) in the grid
 #   "hit_points"     : int       — 1–3 for destructible; 0 for indestructible
@@ -34,9 +34,9 @@ const MAX_ROWS: int = 12
 # [JS equiv]  const DIFFICULTY_TABLE = [{ threshold: 1, max_rows: 5, ... }, ...]
 const DIFFICULTY_TABLE: Array = [
 	{ "threshold": 1,  "max_rows": 5,  "max_hp": 1, "indestructible_chance": 0.00 },
-	{ "threshold": 5,  "max_rows": 7,  "max_hp": 2, "indestructible_chance": 0.00 },
-	{ "threshold": 10, "max_rows": 9,  "max_hp": 3, "indestructible_chance": 0.05 },
-	{ "threshold": 20, "max_rows": 12, "max_hp": 3, "indestructible_chance": 0.10 },
+	{ "threshold": 3,  "max_rows": 7,  "max_hp": 2, "indestructible_chance": 0.00 },
+	{ "threshold": 7, "max_rows": 9,  "max_hp": 3, "indestructible_chance": 0.05 },
+	{ "threshold": 15, "max_rows": 12, "max_hp": 3, "indestructible_chance": 0.10 },
 ]
 
 # Power-up types available per level tier.
@@ -50,14 +50,6 @@ const POWERUP_TABLE: Array = [
 # [JS equiv]  const POWERUP_CHANCE = 0.12
 const POWERUP_CHANCE: float = 0.12
 
-# ── Flip table (T060) ─────────────────────────────────────────────────────────
-# Determines at what levels the layout can be flipped (paddle at top, bricks at bottom).
-# RNG draw happens LAST — after collapse_speed — to preserve seed order.
-# [JS equiv]  const FLIP_TABLE = [{ threshold: 15, chance: 0.30 }]
-const FLIP_TABLE: Array = [
-	{ "threshold": 15, "chance": 0.30 },
-]
-
 # ── Mobile brick table (T058) ──────────────────────────────────────────────────
 # Determines what fraction of bricks collapse downward and how fast.
 # RNG calls for collapse happen AFTER powerup calls to preserve seed order.
@@ -69,10 +61,10 @@ const MOBILE_TABLE: Array = [
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-## Pure function — returns a Dictionary: { "bricks": Array, "layout_flipped": bool }.
+## Pure function — returns a Dictionary: { "bricks": Array }.
 ## Same seed + level always produces the same layout (deterministic).
 ## Called by Game.gd in _spawn_level() on every new level start.
-## [JS equiv]  generate(seed, level) { return { bricks: [...], layoutFlipped: false } }
+## [JS equiv]  generate(seed, level) { return { bricks: [...] } }
 func generate(seed: int, level: int) -> Dictionary:
 	# Clamp seed to positive 32-bit range to avoid RandomNumberGenerator issues.
 	# abs() = Math.abs() in JS.
@@ -183,17 +175,9 @@ func generate(seed: int, level: int) -> Dictionary:
 				"collapse_speed": collapse_speed,
 			})
 
-	# layout_flipped draw — ALWAYS consume one rng call (after all brick-loop draws)
-	# so adding future post-loop draws never shifts this one.
-	# [JS equiv]  const flipRoll = rng.random(); const layoutFlipped = flipChance > 0 && flipRoll < flipChance
-	var flip_chance: float = _get_flip_chance(level)
-	var flip_roll: float = rng.randf()
-	var layout_flipped: bool = flip_chance > 0.0 and flip_roll < flip_chance
-
-	# [JS equiv]  return { bricks: result, layoutFlipped }
+	# [JS equiv]  return { bricks: result }
 	return {
-		"bricks":         result,
-		"layout_flipped": layout_flipped,
+		"bricks": result,
 	}
 
 # ── Private helpers ────────────────────────────────────────────────────────────
@@ -207,15 +191,6 @@ func _get_available_powerups(level: int) -> Array:
 		if level >= entry["threshold"]:
 			pool = entry["types"]
 	return pool
-
-## Returns the flip chance (0.0–1.0) for this level. 0.0 = never flip.
-## [JS equiv]  _getFlipChance(level) { return FLIP_TABLE.filter(e => level >= e.threshold).at(-1)?.chance ?? 0 }
-func _get_flip_chance(level: int) -> float:
-	var chance: float = 0.0
-	for entry in FLIP_TABLE:
-		if level >= entry["threshold"]:
-			chance = entry["chance"]
-	return chance
 
 ## Returns the mobile-brick config active for this level, or empty dict if none.
 ## An empty dict means no mobile bricks for levels below threshold 10.
