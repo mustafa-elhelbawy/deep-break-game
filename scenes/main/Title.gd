@@ -7,12 +7,12 @@
 extends Node2D
 
 @onready var _anim: AnimationPlayer = $AnimationPlayer
-@onready var _tap_label: Label      = $TapLabel
+@onready var _tap_hint: Node2D      = $TapHint
 
 func _ready() -> void:
-	# Hide tap label until entrance completes so it fades in last.
-	# [JS equiv]  this._tapLabel.style.opacity = '0'
-	_tap_label.modulate.a = 0.0
+	# Hide tap hint until entrance completes so it fades in last.
+	# [JS equiv]  this._tapHint.style.opacity = '0'
+	_tap_hint.modulate.a = 0.0
 	_anim.play("entrance")
 	# Chain into tap_pulse once entrance finishes.
 	# [GDScript] Inline Callable (lambda) — like an arrow fn in JS.

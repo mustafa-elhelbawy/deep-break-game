@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/main/LogoGlyph.gd" id="script"]
+[ext_resource type="Script" path="res://scenes/main/LogoRing.gd" id="ring_script"]
+
+[sub_resource type="Animation" id="ring_rotate_anim"]
+resource_name = "ring_rotate"
+length = 14.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Ring:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 6.2831855]
+}
+
+[sub_resource type="AnimationLibrary" id="anim_library"]
+_data = {
+"ring_rotate": SubResource("ring_rotate_anim")
+}
+
+[node name="LogoGlyph" type="Node2D"]
+script = ExtResource("script")
+
+[node name="Ring" type="Node2D" parent="."]
+script = ExtResource("ring_script")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+autoplay = "ring_rotate"
+libraries = {
+"": SubResource("anim_library")
+}

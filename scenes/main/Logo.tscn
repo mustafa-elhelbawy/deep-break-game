@@ -1,24 +1,40 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/Orbitron-Bold.ttf" id="font"]
+[ext_resource type="PackedScene" path="res://scenes/main/LogoGlyph.tscn" id="glyph"]
+
+[sub_resource type="FontVariation" id="font_title"]
+base_font = ExtResource("font")
+spacing_glyph = 7
+
+[sub_resource type="FontVariation" id="font_subtitle"]
+base_font = ExtResource("font")
+spacing_glyph = 5
 
 [sub_resource type="LabelSettings" id="deep_label_settings"]
-font = ExtResource("font")
-font_size = 64
-font_color = Color(0, 0.784, 0.722, 1)
-outline_size = 4
-outline_color = Color(0, 0.302, 0.278, 1)
+font = SubResource("font_title")
+font_size = 44
+font_color = Color(0.902, 0.945, 1.0, 1)
+shadow_size = 12
+shadow_color = Color(0.0, 0.898, 0.784, 0.6)
+shadow_offset = Vector2(0, 0)
 
 [sub_resource type="LabelSettings" id="break_label_settings"]
-font = ExtResource("font")
-font_size = 64
-font_color = Color(1, 0.757, 0.027, 1)
-outline_size = 4
-outline_color = Color(0.478, 0.361, 0, 1)
+font = SubResource("font_title")
+font_size = 44
+font_color = Color(0.0, 0.898, 0.784, 1)
+shadow_size = 16
+shadow_color = Color(0.0, 0.898, 0.784, 0.7)
+shadow_offset = Vector2(0, 0)
+
+[sub_resource type="LabelSettings" id="subtitle_label_settings"]
+font = SubResource("font_subtitle")
+font_size = 10
+font_color = Color(0.482, 0.541, 0.686, 1)
 
 [sub_resource type="Animation" id="float_anim"]
 resource_name = "float"
-length = 3.0
+length = 3.2
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -27,10 +43,10 @@ tracks/0/path = NodePath(".:position")
 tracks/0/interp = 2
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 1.5, 3),
+"times": PackedFloat32Array(0, 1.6, 3.2),
 "transitions": PackedFloat32Array(2, 2, 2),
 "update": 0,
-"values": [Vector2(180, 300), Vector2(180, 308), Vector2(180, 300)]
+"values": [Vector2(180, 250), Vector2(180, 244), Vector2(180, 250)]
 }
 
 [sub_resource type="AnimationLibrary" id="anim_library"]
@@ -39,13 +55,16 @@ _data = {
 }
 
 [node name="Logo" type="Node2D"]
-position = Vector2(180, 300)
+position = Vector2(180, 250)
+
+[node name="Glyph" parent="." instance=ExtResource("glyph")]
+position = Vector2(0, -55)
 
 [node name="DeepLabel" type="Label" parent="."]
-offset_left = -120.0
-offset_top = -88.0
-offset_right = 120.0
-offset_bottom = -8.0
+offset_left = -140.0
+offset_top = 22.0
+offset_right = 140.0
+offset_bottom = 70.0
 mouse_filter = 2
 text = "DEEP"
 label_settings = SubResource("deep_label_settings")
@@ -53,13 +72,24 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="BreakLabel" type="Label" parent="."]
-offset_left = -120.0
-offset_top = 8.0
-offset_right = 120.0
-offset_bottom = 88.0
+offset_left = -140.0
+offset_top = 70.0
+offset_right = 140.0
+offset_bottom = 118.0
 mouse_filter = 2
 text = "BREAK"
 label_settings = SubResource("break_label_settings")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="."]
+offset_left = -160.0
+offset_top = 128.0
+offset_right = 160.0
+offset_bottom = 144.0
+mouse_filter = 2
+text = "NEON BRICK ARCADE"
+label_settings = SubResource("subtitle_label_settings")
 horizontal_alignment = 1
 vertical_alignment = 1
 
