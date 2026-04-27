@@ -35,6 +35,10 @@ var lives: int   = 3
 var score: int   = 0
 var level: int   = 1
 var seed:  int   = 0
+# Lives the player held when the current level began. Used by LevelClear to
+# award stars based on lives lost within the level (lives carry between levels,
+# so 'lives at clear' alone wouldn't isolate this level's performance).
+var level_lives_start: int = 3
 
 # ── Signals ────────────────────────────────────────────────────────────────────
 # [GDScript] Typed signal parameters are enforced at connect() time.
@@ -49,6 +53,7 @@ signal lives_changed(new_lives: int)
 ## initial_seed: pass -1 to use a random seed, or any int for a reproducible seed.
 func start_game(initial_seed: int = -1) -> void:
 	lives = 3
+	level_lives_start = lives
 	score = 0
 	level = 1
 	# randi() returns a random 32-bit unsigned int.
@@ -92,7 +97,16 @@ func level_clear() -> void:
 ## Increments level number and transitions back to WAITING.
 func advance_level() -> void:
 	level += 1
+	# Snapshot lives entering the new level so LevelClear can compute lives lost
+	# in isolation per level on the next clear.
+	level_lives_start = lives
 	_set_state(State.WAITING)
+
+
+## Lives lost since the current level began. Used by the LevelClear screen to
+## award stars (3 − lost, min 1). 0 means a clean run of this level.
+func get_level_lives_lost() -> int:
+	return max(0, level_lives_start - lives)
 
 ## Called by GameOver screen's "Restart" button.
 ## Returns to TITLE state — Main.gd will swap Game.tscn for Title.tscn.

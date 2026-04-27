@@ -1,40 +1,182 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/LevelClear.gd" id="script"]
+[ext_resource type="FontFile" path="res://assets/fonts/Orbitron-Bold.ttf" id="font"]
+[ext_resource type="Script" path="res://scenes/ui/LevelClearBurst.gd" id="burst_script"]
+[ext_resource type="Script" path="res://scenes/ui/LevelClearStar.gd" id="star_script"]
+
+[sub_resource type="FontVariation" id="font_title"]
+base_font = ExtResource("font")
+spacing_glyph = 4
+
+[sub_resource type="FontVariation" id="font_subtitle"]
+base_font = ExtResource("font")
+spacing_glyph = 4
+
+[sub_resource type="FontVariation" id="font_button"]
+base_font = ExtResource("font")
+spacing_glyph = 3
+
+[sub_resource type="LabelSettings" id="title_label_settings"]
+font = SubResource("font_title")
+font_size = 20
+font_color = Color(0.0, 0.898, 0.784, 1)
+shadow_size = 12
+shadow_color = Color(0.0, 0.898, 0.784, 0.7)
+shadow_offset = Vector2(0, 0)
+
+[sub_resource type="LabelSettings" id="subtitle_label_settings"]
+font = SubResource("font_subtitle")
+font_size = 10
+font_color = Color(0.482, 0.541, 0.686, 1)
+
+[sub_resource type="StyleBoxFlat" id="modal_style"]
+content_margin_left = 24.0
+content_margin_top = 28.0
+content_margin_right = 24.0
+content_margin_bottom = 24.0
+bg_color = Color(0.06, 0.094, 0.121, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.898, 0.784, 0.5)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0.0, 0.898, 0.784, 0.3)
+shadow_size = 28
+
+[sub_resource type="StyleBoxFlat" id="next_btn_normal"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0, 0.898, 0.784, 0.06)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.0, 0.898, 0.784, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="next_btn_hover"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0, 0.898, 0.784, 0.18)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.0, 0.898, 0.784, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0.0, 0.898, 0.784, 0.4)
+shadow_size = 20
 
 [node name="LevelClear" type="CanvasLayer"]
 layer = 5
 visible = false
 script = ExtResource("script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="DimOverlay" type="ColorRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 0
 color = Color(0.039, 0.055, 0.102, 0.85)
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="Modal" type="PanelContainer" parent="."]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -80.0
-offset_right = 100.0
-offset_bottom = 80.0
+offset_left = -120.0
+offset_top = -150.0
+offset_right = 120.0
+offset_bottom = 150.0
+mouse_filter = 0
+theme_override_styles/panel = SubResource("modal_style")
+
+[node name="VBox" type="VBoxContainer" parent="Modal"]
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="BurstRow" type="HBoxContainer" parent="Modal/VBox"]
+custom_minimum_size = Vector2(0, 56)
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="VBox"]
-mouse_filter = 2
-text = "LEVEL CLEAR!"
-horizontal_alignment = 1
+[node name="BurstSlot" type="Control" parent="Modal/VBox/BurstRow"]
+custom_minimum_size = Vector2(56, 56)
 
-[node name="LevelLabel" type="Label" parent="VBox"]
-mouse_filter = 2
-text = "Level 1 complete"
-horizontal_alignment = 1
+[node name="Burst" type="Node2D" parent="Modal/VBox/BurstRow/BurstSlot"]
+position = Vector2(28, 28)
+script = ExtResource("burst_script")
 
-[node name="NextButton" type="Button" parent="VBox"]
-text = "Next Level"
+[node name="TitleLabel" type="Label" parent="Modal/VBox"]
+mouse_filter = 2
+text = "LEVEL CLEAR"
+label_settings = SubResource("title_label_settings")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="Modal/VBox"]
+custom_minimum_size = Vector2(80, 1)
+mouse_filter = 2
+color = Color(0.0, 0.898, 0.784, 0.3)
+size_flags_horizontal = 4
+
+[node name="LevelLabel" type="Label" parent="Modal/VBox"]
+mouse_filter = 2
+text = "LEVEL 01 COMPLETE"
+label_settings = SubResource("subtitle_label_settings")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StarsRow" type="HBoxContainer" parent="Modal/VBox"]
+custom_minimum_size = Vector2(0, 28)
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="Star1Slot" type="Control" parent="Modal/VBox/StarsRow"]
+custom_minimum_size = Vector2(22, 22)
+
+[node name="Star1" type="Node2D" parent="Modal/VBox/StarsRow/Star1Slot"]
+position = Vector2(11, 11)
+script = ExtResource("star_script")
+
+[node name="Star2Slot" type="Control" parent="Modal/VBox/StarsRow"]
+custom_minimum_size = Vector2(22, 22)
+
+[node name="Star2" type="Node2D" parent="Modal/VBox/StarsRow/Star2Slot"]
+position = Vector2(11, 11)
+script = ExtResource("star_script")
+
+[node name="Star3Slot" type="Control" parent="Modal/VBox/StarsRow"]
+custom_minimum_size = Vector2(22, 22)
+
+[node name="Star3" type="Node2D" parent="Modal/VBox/StarsRow/Star3Slot"]
+position = Vector2(11, 11)
+script = ExtResource("star_script")
+
+[node name="NextButton" type="Button" parent="Modal/VBox"]
+custom_minimum_size = Vector2(0, 44)
+text = "NEXT LEVEL  →"
+theme_override_fonts/font = SubResource("font_button")
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.0, 0.898, 0.784, 1)
+theme_override_colors/font_hover_color = Color(0.0, 0.898, 0.784, 1)
+theme_override_colors/font_pressed_color = Color(0.0, 0.898, 0.784, 1)
+theme_override_styles/normal = SubResource("next_btn_normal")
+theme_override_styles/hover = SubResource("next_btn_hover")
+theme_override_styles/pressed = SubResource("next_btn_hover")
+theme_override_styles/focus = SubResource("next_btn_hover")

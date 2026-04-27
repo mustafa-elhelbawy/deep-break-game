@@ -1,39 +1,41 @@
 # LevelClear.gd
 # Overlay shown when all destructible bricks are destroyed.
-# Player taps "Next Level" to advance to the next procedural level.
+# Renders a centered modal: hero burst glyph, "LEVEL CLEAR" title, the
+# completed level number, a 3-star rating reflecting lives lost in this level,
+# and a "Next Level" button.
 #
-# [GDScript] 'extends CanvasLayer' — renders above all 2D game content.
-# [JS equiv]  class LevelClearScreen { show(level) {} hide() {} }
+# Star rule: filled = max(1, 3 − lives_lost). One star is always awarded since
+# reaching this screen means the level was cleared.
 extends CanvasLayer
 
-# ── Cached node references ─────────────────────────────────────────────────────
-@onready var _level_label: Label = $VBox/LevelLabel
-@onready var _next_btn: Button   = $VBox/NextButton
+const _MAX_STARS: int = 3
 
-# ── Lifecycle ──────────────────────────────────────────────────────────────────
+@onready var _level_label: Label = $Modal/VBox/LevelLabel
+@onready var _next_btn: Button   = $Modal/VBox/NextButton
+@onready var _stars: Array[Node2D] = [
+	$Modal/VBox/StarsRow/Star1Slot/Star1,
+	$Modal/VBox/StarsRow/Star2Slot/Star2,
+	$Modal/VBox/StarsRow/Star3Slot/Star3,
+]
 
 func _ready() -> void:
-	# Connect the Next Level button's pressed signal.
-	# [GDScript] signal.connect(Callable) — like addEventListener in JS.
-	# [JS equiv]  this._nextBtn.addEventListener('click', this._onNext.bind(this))
 	_next_btn.pressed.connect(_on_next_pressed)
 
-# ── Public API ─────────────────────────────────────────────────────────────────
-
 ## Called by Game.gd to show this screen with the completed level number.
-## [JS equiv]  showForLevel(completedLevel) { this._levelLabel.textContent = `Level ${completedLevel} complete` }
 func show_for_level(completed_level: int) -> void:
-	_level_label.text = "Level %d complete" % completed_level
+	_level_label.text = "LEVEL %02d COMPLETE" % completed_level
+	_apply_stars(GameManager.get_level_lives_lost())
 	_next_btn.disabled = false
 	show()
 
-# ── Handlers ───────────────────────────────────────────────────────────────────
+func _apply_stars(lives_lost: int) -> void:
+	# 0 lost → 3 stars · 1 lost → 2 stars · 2+ lost → 1 star.
+	# Clearing the level guarantees at least one star.
+	var filled_count: int = clampi(_MAX_STARS - lives_lost, 1, _MAX_STARS)
+	for i in _stars.size():
+		_stars[i].filled = i < filled_count
 
 func _on_next_pressed() -> void:
 	# Debounce: disable immediately to prevent double-tap.
 	_next_btn.disabled = true
-
-	# GameManager.advance_level() increments level and emits state_changed(WAITING).
-	# Game.gd reacts by hiding this screen and spawning a new brick layout.
-	# [JS equiv]  gameManager.advanceLevel()
 	GameManager.advance_level()
