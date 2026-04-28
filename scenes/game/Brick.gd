@@ -10,16 +10,6 @@
 # [JS equiv]  class Brick extends PhysicsObject { ... }
 extends StaticBody2D
 
-# ── Atlas region lookup by tier ────────────────────────────────────────────────
-# [GDScript] Array literal. Index = tier number (0–3).
-# [JS equiv]  const TIER_REGIONS = [new Rect2(...), ...]
-const TIER_REGIONS: Array = [
-	Rect2(0, 36, 44, 18),  # tier 0 — teal
-	Rect2(0, 54, 44, 18),  # tier 1 — cyan-blue
-	Rect2(0, 72, 44, 18),  # tier 2 — amber
-	Rect2(0, 90, 44, 18),  # tier 3 — violet (indestructible visual)
-]
-
 # ── Exported properties (set by BrickGrid after instantiate()) ─────────────────
 # [GDScript] @export makes these editable in the Inspector AND settable by code.
 # [JS equiv]  class Brick { constructor({ hitPoints, tier }) { ... } }
@@ -58,29 +48,24 @@ var _collapse_speed: float     = 0.0
 var _paddle_y: float           = 700.0
 
 # ── Cached node references ─────────────────────────────────────────────────────
-@onready var _sprite: Sprite2D = $Sprite2D
-@onready var _hp_dots: Node2D = $HPDots
+@onready var _visual: Node2D = $Visual
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Apply the correct atlas region for this brick's tier.
+	# Apply tier colour and HP-dot count to the drawn visual.
 	_apply_tier_visual()
-	# Show dot indicators for multi-hit bricks (2+ HP).
 	_update_hp_dots()
 
 func _apply_tier_visual() -> void:
-	# Clamp tier to valid index range.
-	# [JS equiv]  Math.max(0, Math.min(3, this.tier))
-	var safe_tier: int = clampi(tier, 0, TIER_REGIONS.size() - 1)
-	_sprite.region_rect = TIER_REGIONS[safe_tier]
+	# Tier indices map directly onto BrickVisual's first four palette slots
+	# (0 teal · 1 cyan · 2 amber · 3 violet). Slot 4 is reserved for the red
+	# mobile tint applied by set_mobile().
+	_visual.color_index = clampi(tier, 0, 3)
 
 func _update_hp_dots() -> void:
-	# Each dot represents one hit needed. Show N dots for N HP.
-	# Indestructible bricks (hp == 0) and 1-HP bricks show no dots.
-	for i in range(_hp_dots.get_child_count()):
-		var dot: Panel = _hp_dots.get_child(i)
-		dot.visible = i < hit_points and hit_points > 1
+	# BrickVisual draws 0/1/2/3 dots based on hp (none for hp<=1, capped at 3).
+	_visual.hp = hit_points
 
 # ── Physics loop (mobile bricks only) ─────────────────────────────────────────
 
@@ -125,10 +110,9 @@ func set_powerup_type(type: String) -> void:
 func set_mobile(speed: float) -> void:
 	_is_mobile = true
 	_collapse_speed = speed
-	# Red tint: modulate multiplies the sprite's colour (1,0.4,0.4,1 = reddish).
-	# Full white modulate (1,1,1,1) = no tint.
-	# [JS equiv]  this.element.style.filter = 'hue-rotate(0deg) saturate(2)'
-	_sprite.modulate = Color(1.0, 0.4, 0.4, 1.0)
+	# Switch the visual to its red palette slot — also enables the small red
+	# warning dot drawn in the top-right of the brick.
+	_visual.color_index = 4
 
 ## Sets the Y threshold at which reached_paddle fires.
 ## Injected by Game.gd in _wire_mobile_bricks() with the real paddle Y position.
