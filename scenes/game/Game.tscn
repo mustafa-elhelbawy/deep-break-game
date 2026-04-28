@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/game/Game.gd" id="script"]
 [ext_resource type="PackedScene" path="res://scenes/game/Walls.tscn" id="walls"]
@@ -8,6 +8,29 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="gameover"]
 [ext_resource type="PackedScene" path="res://scenes/ui/LevelClear.tscn" id="levelclear"]
+[ext_resource type="Shader" path="res://assets/shaders/game_background.gdshader" id="bg_shader"]
+
+[sub_resource type="ShaderMaterial" id="bg_material"]
+shader = ExtResource("bg_shader")
+shader_parameter/base_color = Color(0.039, 0.055, 0.102, 1)
+shader_parameter/grid_color = Color(0.0, 0.898, 0.784, 0.05)
+shader_parameter/rect_size = Vector2(360, 780)
+shader_parameter/grid_size = 28.0
+shader_parameter/grid_thickness = 1.0
+shader_parameter/scanline_alpha = 0.012
+shader_parameter/vignette_strength = 0.55
+
+[sub_resource type="Gradient" id="wallglow_gradient"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(0, 0.898, 0.784, 0, 0, 0.898, 0.784, 0.4, 0, 0.898, 0.784, 0.4, 0, 0.898, 0.784, 0)
+
+[sub_resource type="GradientTexture2D" id="wallglow_tex"]
+gradient = SubResource("wallglow_gradient")
+width = 2
+height = 64
+fill = 0
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -22,10 +45,31 @@ glow_blend_mode = 2
 script = ExtResource("script")
 
 [node name="Background" type="ColorRect" parent="."]
+material = SubResource("bg_material")
 mouse_filter = 2
 position = Vector2(0, 0)
 size = Vector2(360, 780)
 color = Color(0.039, 0.055, 0.102, 1)
+
+[node name="WallGlowLeft" type="TextureRect" parent="."]
+mouse_filter = 2
+texture = SubResource("wallglow_tex")
+offset_left = 0.0
+offset_top = 100.0
+offset_right = 2.0
+offset_bottom = 710.0
+expand_mode = 1
+stretch_mode = 0
+
+[node name="WallGlowRight" type="TextureRect" parent="."]
+mouse_filter = 2
+texture = SubResource("wallglow_tex")
+offset_left = 358.0
+offset_top = 100.0
+offset_right = 360.0
+offset_bottom = 710.0
+expand_mode = 1
+stretch_mode = 0
 
 [node name="Walls" parent="." instance=ExtResource("walls")]
 

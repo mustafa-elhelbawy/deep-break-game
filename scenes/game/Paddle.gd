@@ -121,7 +121,7 @@ func activate_wide() -> void:
 	# Expand collision shape.
 	# [JS equiv]  this.collisionShape.size.x = newWidth
 	($CollisionShape2D.shape as RectangleShape2D).size.x = new_width
-	$Sprite2D.scale.x = WIDE_SCALE
+	$Visual.scale.x = WIDE_SCALE
 	_half_width = new_width / 2.0
 
 	# Cancel any existing timer — catching W again resets the 10 s (replacement behaviour).
@@ -135,9 +135,9 @@ func activate_wide() -> void:
 	_wide_timer.timeout.connect(_revert_wide)
 
 func _revert_wide() -> void:
-	# Restore normal collision width and sprite scale.
+	# Restore normal collision width and visual scale.
 	($CollisionShape2D.shape as RectangleShape2D).size.x = _normal_width
-	$Sprite2D.scale.x = 1.0
+	$Visual.scale.x = 1.0
 	_half_width = _normal_width / 2.0
 	_wide_timer = null
 

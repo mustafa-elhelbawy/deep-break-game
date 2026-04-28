@@ -1,55 +1,189 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/HUD.gd" id="script"]
 [ext_resource type="FontFile" path="res://assets/fonts/Orbitron-Bold.ttf" id="font"]
+[ext_resource type="Script" path="res://scenes/ui/LifeDot.gd" id="lifedot_script"]
+
+[sub_resource type="FontVariation" id="font_caption"]
+base_font = ExtResource("font")
+spacing_glyph = 3
+
+[sub_resource type="FontVariation" id="font_score"]
+base_font = ExtResource("font")
+spacing_glyph = 1
+
+[sub_resource type="FontVariation" id="font_level"]
+base_font = ExtResource("font")
+spacing_glyph = 2
+
+[sub_resource type="FontVariation" id="font_powerup_label"]
+base_font = ExtResource("font")
+spacing_glyph = 4
+
+[sub_resource type="LabelSettings" id="caption_settings"]
+font = SubResource("font_caption")
+font_size = 8
+font_color = Color(0.482, 0.541, 0.686, 1)
+
+[sub_resource type="LabelSettings" id="score_settings"]
+font = SubResource("font_score")
+font_size = 26
+font_color = Color(0.902, 0.945, 1.0, 1)
+shadow_size = 10
+shadow_color = Color(0.0, 0.898, 0.784, 0.45)
+shadow_offset = Vector2(0, 0)
+
+[sub_resource type="LabelSettings" id="level_settings"]
+font = SubResource("font_level")
+font_size = 22
+font_color = Color(1.0, 0.310, 0.659, 1)
+shadow_size = 10
+shadow_color = Color(1.0, 0.310, 0.659, 0.5)
+shadow_offset = Vector2(0, 0)
 
 [sub_resource type="LabelSettings" id="powerup_label_settings"]
+font = SubResource("font_powerup_label")
+font_size = 10
+font_color = Color(0.0, 0.898, 0.784, 1)
+shadow_size = 6
+shadow_color = Color(0.0, 0.898, 0.784, 0.5)
+shadow_offset = Vector2(0, 0)
+
+[sub_resource type="StyleBoxFlat" id="powerup_bar_bg"]
+bg_color = Color(0.0, 0.898, 0.784, 0.18)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0, 0.898, 0.784, 0.3)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="LabelSettings" id="powerup_time_settings"]
 font = ExtResource("font")
-font_size = 14
-font_color = Color(0.533, 0.867, 0.8, 1)
+font_size = 9
+font_color = Color(0.482, 0.541, 0.686, 1)
 
 [node name="HUD" type="CanvasLayer"]
 layer = 1
 script = ExtResource("script")
 
-[node name="ScoreLabel" type="Label" parent="."]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 180.0
-offset_bottom = 40.0
+[node name="ScoreGroup" type="VBoxContainer" parent="."]
+offset_left = 16.0
+offset_top = 32.0
+offset_right = 160.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="ScoreCaption" type="Label" parent="ScoreGroup"]
+mouse_filter = 2
+text = "SCORE"
+label_settings = SubResource("caption_settings")
+
+[node name="ScoreLabel" type="Label" parent="ScoreGroup"]
 mouse_filter = 2
 text = "0"
+label_settings = SubResource("score_settings")
 
-[node name="LivesLabel" type="Label" parent="."]
-anchor_left = 1.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = -120.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = 40.0
+[node name="LevelGroup" type="VBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -40.0
+offset_top = 32.0
+offset_right = 40.0
+offset_bottom = 90.0
 mouse_filter = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="LevelCaption" type="Label" parent="LevelGroup"]
+mouse_filter = 2
+text = "LEVEL"
+label_settings = SubResource("caption_settings")
+horizontal_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="LevelGroup"]
+mouse_filter = 2
+text = "01"
+label_settings = SubResource("level_settings")
+horizontal_alignment = 1
+
+[node name="LivesGroup" type="VBoxContainer" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
+offset_top = 32.0
+offset_right = -16.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="LivesCaption" type="Label" parent="LivesGroup"]
+mouse_filter = 2
+text = "LIVES"
+label_settings = SubResource("caption_settings")
 horizontal_alignment = 2
-text = "♥ 3"
+
+[node name="LivesRow" type="HBoxContainer" parent="LivesGroup"]
+mouse_filter = 2
+alignment = 2
+theme_override_constants/separation = 6
+
+[node name="LifeDot1Slot" type="Control" parent="LivesGroup/LivesRow"]
+custom_minimum_size = Vector2(13, 13)
+mouse_filter = 2
+
+[node name="LifeDot1" type="Node2D" parent="LivesGroup/LivesRow/LifeDot1Slot"]
+position = Vector2(6.5, 6.5)
+script = ExtResource("lifedot_script")
+
+[node name="LifeDot2Slot" type="Control" parent="LivesGroup/LivesRow"]
+custom_minimum_size = Vector2(13, 13)
+mouse_filter = 2
+
+[node name="LifeDot2" type="Node2D" parent="LivesGroup/LivesRow/LifeDot2Slot"]
+position = Vector2(6.5, 6.5)
+script = ExtResource("lifedot_script")
+
+[node name="LifeDot3Slot" type="Control" parent="LivesGroup/LivesRow"]
+custom_minimum_size = Vector2(13, 13)
+mouse_filter = 2
+
+[node name="LifeDot3" type="Node2D" parent="LivesGroup/LivesRow/LifeDot3Slot"]
+position = Vector2(6.5, 6.5)
+script = ExtResource("lifedot_script")
 
 [node name="PowerUpContainer" type="VBoxContainer" parent="."]
 visible = false
-offset_left = 8.0
-offset_top = 680.0
-offset_right = 120.0
-offset_bottom = 700.0
+offset_left = 16.0
+offset_top = 700.0
+offset_right = 156.0
+offset_bottom = 740.0
 mouse_filter = 2
+theme_override_constants/separation = 5
 
 [node name="PowerUpLabel" type="Label" parent="PowerUpContainer"]
 mouse_filter = 2
 text = ""
 label_settings = SubResource("powerup_label_settings")
 
-[node name="PowerUpBar" type="ColorRect" parent="PowerUpContainer"]
-custom_minimum_size = Vector2(100, 4)
-color = Color(0, 0.784, 0.722, 1)
+[node name="PowerUpBarBg" type="Panel" parent="PowerUpContainer"]
+custom_minimum_size = Vector2(130, 5)
+mouse_filter = 2
+theme_override_styles/panel = SubResource("powerup_bar_bg")
+
+[node name="PowerUpBar" type="ColorRect" parent="PowerUpContainer/PowerUpBarBg"]
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 129.0
+offset_bottom = 4.0
+mouse_filter = 2
+color = Color(0.0, 0.898, 0.784, 1)
+
+[node name="PowerUpTimeLabel" type="Label" parent="PowerUpContainer"]
+mouse_filter = 2
+text = ""
+label_settings = SubResource("powerup_time_settings")

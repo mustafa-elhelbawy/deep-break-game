@@ -18,8 +18,8 @@ const BRICK_H: float   = 18.0
 const PADDING_X: float = 4.0
 const PADDING_Y: float = 4.0
 # Top-left corner of the grid — below HUD area.
-# [JS equiv]  const GRID_ORIGIN = { x: 35, y: 60 }
-const GRID_ORIGIN: Vector2 = Vector2(35.0, 60.0)
+# [JS equiv]  const GRID_ORIGIN = { x: 35, y: 100 }
+const GRID_ORIGIN: Vector2 = Vector2(35.0, 100.0)
 
 # ── Signals ────────────────────────────────────────────────────────────────────
 # [GDScript] Signals bubble: Brick → BrickGrid → Game.gd
