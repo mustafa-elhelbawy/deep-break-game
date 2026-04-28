@@ -98,6 +98,7 @@ func reset_to_paddle(paddle_global_pos: Vector2) -> void:
 	# In Godot 2D, +Y is downward, so -Y moves upward.
 	# [JS equiv]  this.position = { x: paddle_global_pos.x, y: paddle_global_pos.y - 30 }
 	global_position = paddle_global_pos + Vector2(0.0, -30.0)
+	_clear_trail()
 
 ## Sets ball speed for the given level. Call BEFORE launch() on every serve.
 ## Speed grows 8% per level, capped at 2× BASE_SPEED (800 px/s from level 13+).
@@ -115,11 +116,20 @@ func park(world_pos: Vector2) -> void:
 	_active = false
 	_velocity = Vector2.ZERO
 	global_position = world_pos
+	_clear_trail()
 
 ## Stop the ball immediately. Called by Game.gd on game-over or level-clear.
 func deactivate() -> void:
 	_active = false
 	_velocity = Vector2.ZERO
+	_clear_trail()
+
+func _clear_trail() -> void:
+	# Trail child only exists on the primary Ball scene; guard so subclasses or
+	# detached test instances don't crash.
+	var trail: Node = get_node_or_null("Trail")
+	if trail != null and trail.has_method("clear_trail"):
+		trail.clear_trail()
 
 ## Activate slow-motion: set modifier to 0.55 and immediately rescale velocity.
 ## Safe to call while already active — idempotent (timer reset is managed by Game.gd).
