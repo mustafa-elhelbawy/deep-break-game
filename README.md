@@ -6,15 +6,19 @@
 
 ![Godot](https://img.shields.io/badge/Godot-4.x-478CBF?logo=godotengine&logoColor=white)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-355570)
-![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)
+[![Google Play](https://img.shields.io/badge/Google%20Play-Live-3DDC84?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
 ![Workflow](https://img.shields.io/badge/Workflow-Spec--Driven-8A2BE2)
 ![PRs](https://img.shields.io/badge/PRs%20merged-48-success)
+
+### [▶ Get it on Google Play](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
 
 </div>
 
 ---
 
 ## Overview
+
+> **Live on Google Play:** [Deep Break on the Play Store](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak). The project went from spec to a published Android release.
 
 Deep Break is a portrait-mode, one-thumb breakout game built in **Godot 4 with pure GDScript**. Every level is **generated from a seed**, so the game never runs out of content, and the same seed always produces the same layout. Difficulty ramps up as you go: more rows, tougher bricks, indestructible obstacles, and bricks that sink toward your paddle.
 
@@ -144,7 +148,7 @@ The game was built with a **spec-driven workflow** ([GitHub Spec Kit](https://gi
 | 4 | Visual polish: bioluminescent palette, bloom, particles, shake, audio | ✅ |
 | 5 | APK build pipeline and on-device verification | ✅ |
 | 6 | Polish: title/logo, realistic ball movement, power-ups, collapsing bricks, HP indicators | ✅ |
-| 7 | Store assets and release | 🔜 |
+| 7 | Store assets and **Google Play release** | ✅ |
 
 ## Getting Started
 
