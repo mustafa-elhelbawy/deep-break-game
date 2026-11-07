@@ -9,10 +9,13 @@
 ![Godot](https://img.shields.io/badge/Godot-4.x-478CBF?logo=godotengine&logoColor=white)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-355570)
 [![Google Play](https://img.shields.io/badge/Google%20Play-Live-3DDC84?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
+[![Play in browser](https://img.shields.io/badge/Play-in%20browser-00C8B8?logo=html5&logoColor=white)](https://www.glitchy-tap.com/revamp/games/deep-break/)
 ![Workflow](https://img.shields.io/badge/Workflow-Spec--Driven-8A2BE2)
 ![PRs](https://img.shields.io/badge/PRs%20merged-48-success)
 
-### [▶ Get it on Google Play](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
+### [▶ Get it on Google Play](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak) · [▶ Play in your browser](https://www.glitchy-tap.com/revamp/games/deep-break/)
+
+<sub>Web version hosted on <a href="https://www.glitchy-tap.com/revamp/">GlitchyTap</a>, the studio showcase I run with a fellow developer</sub>
 
 </div>
 
@@ -20,7 +23,7 @@
 
 ## Overview
 
-> **Live on Google Play:** [Deep Break on the Play Store](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak). The project went from spec to a published Android release.
+> **Live on Google Play:** [Deep Break on the Play Store](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak). The project went from spec to a published Android release. There is also a [web version you can play in the browser](https://www.glitchy-tap.com/revamp/games/deep-break/).
 
 Deep Break is a portrait-mode, one-thumb breakout game built in **Godot 4 with pure GDScript**. Every level is **generated from a seed**, so the game never runs out of content, and the same seed always produces the same layout. Difficulty ramps up as you go: more rows, tougher bricks, indestructible obstacles, and bricks that sink toward your paddle.
 
