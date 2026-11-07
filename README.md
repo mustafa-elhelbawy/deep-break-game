@@ -1,14 +1,18 @@
 <div align="center">
 
+<img src="docs/screenshots/icon.png" alt="Deep Break app icon" width="120" />
+
 # Deep Break
 
-**A hyper-casual, procedurally generated brick-breaker for mobile, with a bioluminescent deep-sea look.**
+**A hyper-casual, procedurally generated brick-breaker for mobile, with a glowing neon arcade look.**
 
 ![Godot](https://img.shields.io/badge/Godot-4.x-478CBF?logo=godotengine&logoColor=white)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-355570)
-![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)
+[![Google Play](https://img.shields.io/badge/Google%20Play-Live-3DDC84?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
 ![Workflow](https://img.shields.io/badge/Workflow-Spec--Driven-8A2BE2)
 ![PRs](https://img.shields.io/badge/PRs%20merged-48-success)
+
+### [▶ Get it on Google Play](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak)
 
 </div>
 
@@ -16,9 +20,21 @@
 
 ## Overview
 
+> **Live on Google Play:** [Deep Break on the Play Store](https://play.google.com/store/apps/details?id=com.glitchytap.deepbreak). The project went from spec to a published Android release.
+
 Deep Break is a portrait-mode, one-thumb breakout game built in **Godot 4 with pure GDScript**. Every level is **generated from a seed**, so the game never runs out of content, and the same seed always produces the same layout. Difficulty ramps up as you go: more rows, tougher bricks, indestructible obstacles, and bricks that sink toward your paddle.
 
 The project was built **spec-first**. A written feature spec, an implementation plan, 66 sized tasks, and 6 Architecture Decision Records came before the code, and each task was delivered as its own reviewed pull request.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-title.jpg" alt="Title screen" width="23%" />
+  <img src="docs/screenshots/02-launch.jpg" alt="Level 1, ball ready to launch" width="23%" />
+  <img src="docs/screenshots/03-wide-powerup.jpg" alt="Gameplay with the Wide paddle power-up active" width="23%" />
+  <img src="docs/screenshots/04-level-clear.jpg" alt="Level Clear screen with star rating" width="23%" />
+</p>
+<p align="center"><sub>Title screen · Ready to launch · Wide-paddle power-up · Level clear</sub></p>
 
 ## Highlights
 
@@ -144,7 +160,7 @@ The game was built with a **spec-driven workflow** ([GitHub Spec Kit](https://gi
 | 4 | Visual polish: bioluminescent palette, bloom, particles, shake, audio | ✅ |
 | 5 | APK build pipeline and on-device verification | ✅ |
 | 6 | Polish: title/logo, realistic ball movement, power-ups, collapsing bricks, HP indicators | ✅ |
-| 7 | Store assets and release | 🔜 |
+| 7 | Store assets and **Google Play release** | ✅ |
 
 ## Getting Started
 
