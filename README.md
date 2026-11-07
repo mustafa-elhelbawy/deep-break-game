@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="docs/screenshots/icon.png" alt="Deep Break app icon" width="120" />
+
 # Deep Break
 
-**A hyper-casual, procedurally generated brick-breaker for mobile, with a bioluminescent deep-sea look.**
+**A hyper-casual, procedurally generated brick-breaker for mobile, with a glowing neon arcade look.**
 
 ![Godot](https://img.shields.io/badge/Godot-4.x-478CBF?logo=godotengine&logoColor=white)
 ![GDScript](https://img.shields.io/badge/GDScript-100%25-355570)
@@ -23,6 +25,16 @@
 Deep Break is a portrait-mode, one-thumb breakout game built in **Godot 4 with pure GDScript**. Every level is **generated from a seed**, so the game never runs out of content, and the same seed always produces the same layout. Difficulty ramps up as you go: more rows, tougher bricks, indestructible obstacles, and bricks that sink toward your paddle.
 
 The project was built **spec-first**. A written feature spec, an implementation plan, 66 sized tasks, and 6 Architecture Decision Records came before the code, and each task was delivered as its own reviewed pull request.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-title.jpg" alt="Title screen" width="23%" />
+  <img src="docs/screenshots/02-launch.jpg" alt="Level 1, ball ready to launch" width="23%" />
+  <img src="docs/screenshots/03-wide-powerup.jpg" alt="Gameplay with the Wide paddle power-up active" width="23%" />
+  <img src="docs/screenshots/04-level-clear.jpg" alt="Level Clear screen with star rating" width="23%" />
+</p>
+<p align="center"><sub>Title screen · Ready to launch · Wide-paddle power-up · Level clear</sub></p>
 
 ## Highlights
 
